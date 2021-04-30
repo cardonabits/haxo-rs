@@ -6,6 +6,7 @@ extern crate time;
 extern crate static_assertions;
 
 use fluidsynth::*;
+use std::collections::HashMap;
 use std::error::Error;
 use std::thread;
 use std::time::Duration;
@@ -84,6 +85,20 @@ fn scan_keys() -> Result<u32, Box<dyn Error>> {
         }
     }
     Ok(keymap)
+} 
+
+fn gen_notemap() -> HashMap<u32,i32> {
+    let mut notemap = HashMap::new();
+    // silence
+    notemap.insert(0,0);
+    notemap.insert(31,52);
+    notemap.insert(15,53);
+    notemap.insert(23,54);
+    notemap.insert(7,55);
+    notemap.insert(3,57);
+    notemap.insert(1,59);
+    notemap.insert(2,60);
+    notemap
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -94,15 +109,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     init_scan_io().expect("Failed to initialize scan GPIO");
 
-    let mut last_note :u32 = 0;
+    let notemap = gen_notemap();
+
+    let mut last_keys :u32 = 0;
+    let mut last_note = 0;
     loop {
         thread::sleep(Duration::from_millis(50));
 
-            let note = scan_keys()?;
-            if last_note != note {
-                println!("Note event {}", note);
-                syn.noteon(0,60,80);
-                last_note = note;
+            let keys = scan_keys()?;
+            if last_keys != keys {
+                // TODO: use log messages instead...
+                println!("Key event {}", keys);
+                if let Some(note) = notemap.get(&keys) {
+                    syn.noteoff(0, last_note);
+                    // until we have breadth control, assume all keys unpressed means silence
+                    if *note > 0 {
+                        syn.noteon(0, *note, 80);
+                    }
+                    last_note = *note;
+                }
+                last_keys = keys;
             }
         }
 }
