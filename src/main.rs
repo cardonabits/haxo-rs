@@ -2,6 +2,9 @@ extern crate fluidsynth;
 extern crate rand;
 extern crate time;
 
+#[macro_use]
+extern crate static_assertions;
+
 use fluidsynth::*;
 use std::error::Error;
 use std::thread;
@@ -10,6 +13,10 @@ use std::time::Duration;
 use rppal::gpio::Gpio;
 use rppal::gpio::Level;
 use rppal::system::DeviceInfo;
+
+// BCM pin numbering
+const ROWS : [u8; 5] = [3, 4, 14, 15, 18];
+const COLS : [u8; 1] = [2];
 
 fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
@@ -23,75 +30,79 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     (syn, settings, adriver)
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-
-    let (syn, _settings, _adriver) = try_init_synth();
-
-    // BCM pin numbering
-    const ROWS : [u8; 5] = [3, 4, 14, 15, 18];
-    const COLS : [u8; 1] = [2];
-    let mut pressed = [[false; ROWS.len()]; COLS.len()];
-
-    println!("Scanning haxophone a {}", DeviceInfo::new()?.model());
-
+fn init_scan_io() -> Result<(), Box<dyn Error>> {
     for row in &ROWS {
         let _pin = Gpio::new()?.get(*row)?.into_input();
     }
     for col in &COLS {
         let _pin = Gpio::new()?.get(*col)?.into_input_pullup();
     }
+    Ok(())
+}
 
-    let mut last_note :i32 = 0;
-    loop {
-        let mut event = false;
-        thread::sleep(Duration::from_millis(50));
-        let mut rindex = 0;
-        let mut cindex = 0;
-        for row in &ROWS {
-            let mut row_pin = Gpio::new()?.get(*row)?.into_output();
-            row_pin.set_low();
+fn get_bit_at(input: u32, n: u8) -> bool {
+    if n < 32 {
+        input & (1 << n) != 0
+    } else {
+        false
+    }
+}
 
-            for col in &COLS {
-                let col_pin = Gpio::new()?.get(*col)?.into_input();
-                let is_pressed = col_pin.read() == Level::Low;
+fn set_bit_at(output: &mut u32, n: u8) {
+    if n < 32 {
+        *output |= 1 << n; 
+    }
+}
 
-                if pressed[cindex][rindex] != is_pressed {
-                    pressed[cindex][rindex] = is_pressed;
-                    event = true;
-                }
-                cindex += 1;
-                if cindex == COLS.len() {
-                    cindex = 0;
+fn clear_bit_at(output: &mut u32, n: u8) {
+    if n < 32 {
+        *output &= !(1 << n); 
+    }
+}
+
+fn scan_keys() -> Result<u32, Box<dyn Error>> {
+    const_assert!(ROWS.len() + COLS.len() <= 32); 
+    let mut key_idx = 0;
+    // a bit if set if the corresponding key is pressed
+    let mut keymap :u32 = 0;
+    for row in &ROWS {
+        let mut row_pin = Gpio::new()?.get(*row)?.into_output();
+        row_pin.set_low();
+
+        for col in &COLS {
+            let col_pin = Gpio::new()?.get(*col)?.into_input();
+            let is_pressed = col_pin.read() == Level::Low;
+
+            if get_bit_at(keymap, key_idx) != is_pressed {
+                if is_pressed {
+                    set_bit_at(&mut keymap, key_idx);
+                } else {
+                    clear_bit_at(&mut keymap, key_idx);
                 }
             }
-
-            rindex += 1;
-            if rindex == ROWS.len() {
-                rindex = 0;
-            }
-
-            // compute a single note from all the pressed keys
-            if event {
-                let mut note :i32 = 50; 
-                if last_note > 0 {
-                    syn.noteoff(0, last_note);
-                    println!("Note {} off", last_note);
-                }
-                for i in 0..ROWS.len() {
-                    if pressed[0][i] {
-                        note += 1 + i as i32;
-                    }
-                }
-
-                // until we have breath control, assume no keys means silence
-                if note != 50 {
-                    syn.noteon(0, note, 80);
-                    println!("Note {} on", note);
-                }
-                last_note = note;
-            }
-
-            // on drop row_pin will be reset to input
+            key_idx += 1; 
         }
     }
+    Ok(keymap)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+
+    let (syn, _settings, _adriver) = try_init_synth();
+
+    println!("Scanning haxophone a {}", DeviceInfo::new()?.model());
+
+    init_scan_io().expect("Failed to initialize scan GPIO");
+
+    let mut last_note :u32 = 0;
+    loop {
+        thread::sleep(Duration::from_millis(50));
+
+            let note = scan_keys()?;
+            if last_note != note {
+                println!("Note event {}", note);
+                syn.noteon(0,60,80);
+                last_note = note;
+            }
+        }
 }

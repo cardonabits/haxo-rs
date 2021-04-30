@@ -8,8 +8,9 @@ edition = "2018"
 
 [dependencies]
 rand = "0.8.0"
-time = "0.2.26"
 rppal = { version = "0.12.0", features = ["hal"] }
+static_assertions = "0.1"
+time = "0.2.26"
 
 [dependencies.fluidsynth]
 git = "https://github.com/scholtzan/rust-fluidsynth"
