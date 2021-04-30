@@ -21,7 +21,11 @@ const COLS : [u8; 1] = [2];
 
 fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
+    // try to optimize for low latency
     settings.setstr("audio.driver", "alsa");
+    settings.setstr("audio.periods", "2");
+    settings.setstr("audio.alsa.device", "hw:0");
+    settings.setstr("audio.realtime-prio", "1");
     let mut syn = synth::Synth::new(&mut settings);
     // supposedly, assign tenor sax patch to midi channel 0
     syn.program_change(0, 67);
@@ -91,13 +95,16 @@ fn gen_notemap() -> HashMap<u32,i32> {
     let mut notemap = HashMap::new();
     // silence
     notemap.insert(0,0);
-    notemap.insert(31,52);
-    notemap.insert(15,53);
-    notemap.insert(23,54);
-    notemap.insert(7,55);
-    notemap.insert(3,57);
-    notemap.insert(1,59);
-    notemap.insert(2,60);
+    notemap.insert(31,52);// E
+    notemap.insert(15,53);// F
+    notemap.insert(23,54);// F#
+    notemap.insert(7,55); // G
+    notemap.insert(3,57); // A
+    notemap.insert(9,58); // Bb
+    notemap.insert(17,58);
+    notemap.insert(25,58);
+    notemap.insert(1,59); // B
+    notemap.insert(2,60); // C
     notemap
 }
 
