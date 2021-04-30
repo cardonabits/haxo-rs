@@ -11,22 +11,28 @@ use rppal::gpio::Gpio;
 use rppal::gpio::Level;
 use rppal::system::DeviceInfo;
 
-fn main() -> Result<(), Box<dyn Error>> {
-
+fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
     settings.setstr("audio.driver", "alsa");
     let mut syn = synth::Synth::new(&mut settings);
     // supposedly, assign tenor sax patch to midi channel 0
     syn.program_change(0, 67);
-    let _adriver = audio::AudioDriver::new(&mut settings, &mut syn);
+    let adriver = audio::AudioDriver::new(&mut settings, &mut syn);
     syn.sfload("/usr/share/sounds/sf2/FluidR3_GM.sf2", 1);
+    println!("Synth created");
+    (syn, settings, adriver)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+
+    let (syn, _settings, _adriver) = try_init_synth();
 
     // BCM pin numbering
     const ROWS : [u8; 5] = [3, 4, 14, 15, 18];
     const COLS : [u8; 1] = [2];
     let mut pressed = [[false; ROWS.len()]; COLS.len()];
 
-    println!("Scanning haxophone a {}.", DeviceInfo::new()?.model());
+    println!("Scanning haxophone a {}", DeviceInfo::new()?.model());
 
     for row in &ROWS {
         let _pin = Gpio::new()?.get(*row)?.into_input();
