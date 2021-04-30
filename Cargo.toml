@@ -1,0 +1,15 @@
+[package]
+name = "haxo001"
+version = "0.1.0"
+authors = ["Javier Cardona <javier.cardona@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.0"
+time = "0.2.26"
+rppal = { version = "0.12.0", features = ["hal"] }
+
+[dependencies.fluidsynth]
+git = "https://github.com/scholtzan/rust-fluidsynth"
