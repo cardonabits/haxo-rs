@@ -27,10 +27,10 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     if !settings.setstr("audio.driver", "alsa") {
         warn!("Setting audio.driver in fluidsynth failed");
     }
-    if !settings.setint("audio.periods", 4) {
+    if !settings.setint("audio.periods", 3) {
         warn!("Setting audio.periods in fluidsynth failed");
     }
-    if !settings.setint("audio.period-size", 512) {
+    if !settings.setint("audio.period-size", 444) {
         warn!("Setting audio.period-size in fluidsynth failed");
     }
     if !settings.setstr("audio.alsa.device", "hw:0") {
@@ -146,7 +146,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     syn.noteoff(0, last_note);
                     // until we have breadth control, assume all keys unpressed means silence
                     if *note > 0 {
-                        syn.noteon(0, *note, 80);
+                        syn.noteon(0, *note, 127);
                     }
                     last_note = *note;
                 }
