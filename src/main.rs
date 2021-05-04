@@ -5,7 +5,9 @@ extern crate time;
 #[macro_use]
 extern crate static_assertions;
 
-use fluidsynth::*;
+use log::{debug, info, warn, error};
+
+use fluidsynth::{synth, settings, audio};
 use std::collections::HashMap;
 use std::error::Error;
 use std::thread;
@@ -22,10 +24,21 @@ const COLS : [u8; 1] = [2];
 fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
     // try to optimize for low latency
-    settings.setstr("audio.driver", "alsa");
-    settings.setstr("audio.periods", "2");
-    settings.setstr("audio.alsa.device", "hw:0");
-    settings.setstr("audio.realtime-prio", "1");
+    if !settings.setstr("audio.driver", "alsa") {
+        warn!("Setting audio.driver in fluidsynth failed");
+    }
+    if !settings.setint("audio.periods", 4) {
+        warn!("Setting audio.periods in fluidsynth failed");
+    }
+    if !settings.setint("audio.period-size", 512) {
+        warn!("Setting audio.period-size in fluidsynth failed");
+    }
+    if !settings.setstr("audio.alsa.device", "hw:0") {
+        warn!("Setting audio.alsa.device in fluidsynth failed");
+    }
+    if !settings.setint("audio.realtime-prio", 99) {
+        warn!("Setting audio.realtime-prio in fluidsynth failed");
+    }
     let mut syn = synth::Synth::new(&mut settings);
     // supposedly, assign tenor sax patch to midi channel 0
     syn.program_change(0, 67);
@@ -109,6 +122,8 @@ fn gen_notemap() -> HashMap<u32,i32> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+
+    env_logger::init();
 
     let (syn, _settings, _adriver) = try_init_synth();
 
