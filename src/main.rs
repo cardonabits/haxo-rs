@@ -18,8 +18,8 @@ use rppal::gpio::Level;
 use rppal::system::DeviceInfo;
 
 // BCM pin numbering
-const ROWS : [u8; 5] = [3, 4, 14, 15, 18];
-const COLS : [u8; 1] = [2];
+const ROWS : [u8; 8] = [14,15,16,17,18,22,23,24];
+const COLS : [u8; 4] = [25,26,27,2];
 
 fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
@@ -49,11 +49,15 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
 }
 
 fn init_scan_io() -> Result<(), Box<dyn Error>> {
+    let gpio = Gpio::new()?;
     for row in &ROWS {
-        let _pin = Gpio::new()?.get(*row)?.into_input();
+        let mut pin = gpio.get(*row)?.into_output();
+        pin.set_high();
+        pin.set_reset_on_drop(false);
     }
     for col in &COLS {
-        let _pin = Gpio::new()?.get(*col)?.into_input_pullup();
+        let mut pin = gpio.get(*col)?.into_input_pullup();
+        pin.set_reset_on_drop(false);
     }
     Ok(())
 }
@@ -80,15 +84,16 @@ fn clear_bit_at(output: &mut u32, n: u8) {
 
 fn scan_keys() -> Result<u32, Box<dyn Error>> {
     const_assert!(ROWS.len() + COLS.len() <= 32); 
+    let gpio = Gpio::new()?;
     let mut key_idx = 0;
     // a bit if set if the corresponding key is pressed
     let mut keymap :u32 = 0;
     for row in &ROWS {
-        let mut row_pin = Gpio::new()?.get(*row)?.into_output();
+        let mut row_pin = gpio.get(*row)?.into_output();
         row_pin.set_low();
 
         for col in &COLS {
-            let col_pin = Gpio::new()?.get(*col)?.into_input();
+            let col_pin = gpio.get(*col)?.into_input();
             let is_pressed = col_pin.read() == Level::Low;
 
             if get_bit_at(keymap, key_idx) != is_pressed {
@@ -100,24 +105,24 @@ fn scan_keys() -> Result<u32, Box<dyn Error>> {
             }
             key_idx += 1; 
         }
+        row_pin.set_high();
     }
     Ok(keymap)
 } 
+
+
 
 fn gen_notemap() -> HashMap<u32,i32> {
     let mut notemap = HashMap::new();
     // silence
     notemap.insert(0,0);
-    notemap.insert(31,52);// E
-    notemap.insert(15,53);// F
-    notemap.insert(23,54);// F#
-    notemap.insert(7,55); // G
-    notemap.insert(3,57); // A
-    notemap.insert(9,58); // Bb
-    notemap.insert(17,58);
-    notemap.insert(25,58);
-    notemap.insert(1,59); // B
-    notemap.insert(2,60); // C
+    notemap.insert(572662272,50); //D
+    notemap.insert(35791360, 52); // E
+    notemap.insert(2236928, 53);  // F
+    notemap.insert(139776, 55);   // G
+    notemap.insert(8704, 57);     // A
+    notemap.insert(512, 59);      // B
+    notemap.insert(8192, 60);     // C
     notemap
 }
 
@@ -136,9 +141,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_keys :u32 = 0;
     let mut last_note = 0;
     loop {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(500));
 
             let keys = scan_keys()?;
+            debug!("keys {:05b}", keys);
             if last_keys != keys {
                 // TODO: use log messages instead...
                 println!("Key event {}", keys);
