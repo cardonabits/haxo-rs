@@ -50,13 +50,13 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
 
 fn init_scan_io() -> Result<(), Box<dyn Error>> {
     let gpio = Gpio::new()?;
+    for col in &COLS {
+        let mut pin = gpio.get(*col)?.into_input_pullup();
+        pin.set_reset_on_drop(false);
+    }
     for row in &ROWS {
         let mut pin = gpio.get(*row)?.into_output();
         pin.set_high();
-        pin.set_reset_on_drop(false);
-    }
-    for col in &COLS {
-        let mut pin = gpio.get(*col)?.into_input_pullup();
         pin.set_reset_on_drop(false);
     }
     Ok(())
@@ -93,7 +93,7 @@ fn scan_keys() -> Result<u32, Box<dyn Error>> {
         row_pin.set_low();
 
         for col in &COLS {
-            let col_pin = gpio.get(*col)?.into_input();
+            let col_pin = gpio.get(*col)?;
             let is_pressed = col_pin.read() == Level::Low;
 
             if get_bit_at(keymap, key_idx) != is_pressed {
@@ -119,8 +119,12 @@ fn gen_notemap() -> HashMap<u32,i32> {
     notemap.insert(572662272,50); //D
     notemap.insert(35791360, 52); // E
     notemap.insert(2236928, 53);  // F
+    notemap.insert(33694208, 54); // F#
     notemap.insert(139776, 55);   // G
     notemap.insert(8704, 57);     // A
+    notemap.insert(33554944, 58); // Bb
+    notemap.insert(544, 58);      // Bb
+    notemap.insert(2097664, 58);  // Bb
     notemap.insert(512, 59);      // B
     notemap.insert(8192, 60);     // C
     notemap
@@ -141,13 +145,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_keys :u32 = 0;
     let mut last_note = 0;
     loop {
-        thread::sleep(Duration::from_millis(500));
+        thread::sleep(Duration::from_millis(50));
 
             let keys = scan_keys()?;
-            debug!("keys {:05b}", keys);
             if last_keys != keys {
-                // TODO: use log messages instead...
-                println!("Key event {}", keys);
+                debug!("Key event {} {:05b}", keys, keys);
                 if let Some(note) = notemap.get(&keys) {
                     syn.noteoff(0, last_note);
                     // until we have breadth control, assume all keys unpressed means silence
