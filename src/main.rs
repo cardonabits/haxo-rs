@@ -19,7 +19,7 @@ use rppal::system::DeviceInfo;
 
 // BCM pin numbering
 const ROWS : [u8; 8] = [14,15,16,17,18,22,23,24];
-const COLS : [u8; 4] = [25,26,27,2];
+const COLS : [u8; 4] = [25,26,27,4];
 
 fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
@@ -42,8 +42,12 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut syn = synth::Synth::new(&mut settings);
     // supposedly, assign tenor sax patch to midi channel 0
     syn.program_change(0, 67);
+    if !syn.set_polyphony(1) {
+        warn!("Failed to set polyphony to 1");
+    }
     let adriver = audio::AudioDriver::new(&mut settings, &mut syn);
-    syn.sfload("/usr/share/sounds/sf2/FluidR3_GM.sf2", 1);
+    //syn.sfload("/usr/share/sounds/sf2/FluidR3_GM.sf2", 1);
+    syn.sfload("/usr/share/sounds/sf2/TimGM6mb.sf2", 1);
     println!("Synth created");
     (syn, settings, adriver)
 }
@@ -116,17 +120,26 @@ fn gen_notemap() -> HashMap<u32,i32> {
     let mut notemap = HashMap::new();
     // silence
     notemap.insert(0,0);
-    notemap.insert(572662272,50); //D
+    notemap.insert(656548352,46); // Bb
+    notemap.insert(640819712,47); // B
+    notemap.insert(639771136,48); // C
+    notemap.insert(639836672,49); // C#
+    notemap.insert(572662272,50); // D
+    notemap.insert(39985664,51);  // Eb
     notemap.insert(35791360, 52); // E
     notemap.insert(2236928, 53);  // F
     notemap.insert(33694208, 54); // F#
+    notemap.insert(2499072, 54);  // F#
     notemap.insert(139776, 55);   // G
+    notemap.insert(143872, 56);   // G#
     notemap.insert(8704, 57);     // A
     notemap.insert(33554944, 58); // Bb
     notemap.insert(544, 58);      // Bb
     notemap.insert(2097664, 58);  // Bb
+    notemap.insert(8960, 58);     // Bb
     notemap.insert(512, 59);      // B
     notemap.insert(8192, 60);     // C
+    notemap.insert(528, 60);      // C
     notemap
 }
 
@@ -145,18 +158,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_keys :u32 = 0;
     let mut last_note = 0;
     loop {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(10));
 
             let keys = scan_keys()?;
             if last_keys != keys {
-                debug!("Key event {} {:05b}", keys, keys);
+                debug!("Key event {:032b}: {}", keys, keys);
                 if let Some(note) = notemap.get(&keys) {
-                    syn.noteoff(0, last_note);
                     // until we have breadth control, assume all keys unpressed means silence
                     if *note > 0 {
                         syn.noteon(0, *note, 127);
                     }
+                    // make before break
+                    let ret = syn.noteoff(0, last_note);
                     last_note = *note;
+                    debug!("last_note changed to {}", last_note);
                 }
                 last_keys = keys;
             }
