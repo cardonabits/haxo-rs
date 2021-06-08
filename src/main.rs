@@ -10,6 +10,7 @@ use log::{debug, info, warn, error};
 use fluidsynth::{synth, settings, audio};
 use std::collections::HashMap;
 use std::error::Error;
+use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
@@ -115,6 +116,13 @@ fn scan_keys() -> Result<u32, Box<dyn Error>> {
 } 
 
 
+fn shutdown() {
+    debug!("Bye...");
+    Command::new("/usr/bin/sudo")
+            .arg("/usr/sbin/halt")
+            .status()
+            .expect("failed to halt system");
+}
 
 fn gen_notemap() -> HashMap<u32,i32> {
     let mut notemap = HashMap::new();
@@ -140,6 +148,8 @@ fn gen_notemap() -> HashMap<u32,i32> {
     notemap.insert(512, 59);      // B
     notemap.insert(8192, 60);     // C
     notemap.insert(528, 60);      // C
+    // control messages
+    notemap.insert(71565856, -1); // shutdown
     notemap
 }
 
@@ -168,8 +178,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if *note > 0 {
                         syn.noteon(0, *note, 127);
                     }
+                    if *note < 0 {
+                        // TODO: pick the right control messages.  For now, only one is supported
+                        shutdown();
+                        return Ok(());
+                    }
                     // make before break
-                    let ret = syn.noteoff(0, last_note);
+                    syn.noteoff(0, last_note);
                     last_note = *note;
                     debug!("last_note changed to {}", last_note);
                 }
