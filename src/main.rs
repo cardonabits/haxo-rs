@@ -34,7 +34,9 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     if !settings.setint("audio.period-size", 444) {
         warn!("Setting audio.period-size in fluidsynth failed");
     }
-    if !settings.setstr("audio.alsa.device", "hw:0") {
+    // TODO: Find headphone device, as it may not always be hw:1
+    // if HDMI is disabled
+    if !settings.setstr("audio.alsa.device", "hw:1") {
         warn!("Setting audio.alsa.device in fluidsynth failed");
     }
     if !settings.setint("audio.realtime-prio", 99) {
@@ -133,7 +135,7 @@ fn gen_notemap() -> HashMap<u32,i32> {
     notemap.insert(639771136,48); // C
     notemap.insert(639836672,49); // C#
     notemap.insert(572662272,50); // D
-    notemap.insert(39985664,51);  // Eb
+    notemap.insert(576856576,51);  // Eb
     notemap.insert(35791360, 52); // E
     notemap.insert(2236928, 53);  // F
     notemap.insert(33694208, 54); // F#
