@@ -5,8 +5,8 @@ use rppal::gpio::Gpio;
 use rppal::gpio::Level;
 
 // BCM pin numbering
-const ROWS: [u8; 8] = [14, 15, 16, 17, 18, 22, 23, 24];
-const COLS: [u8; 4] = [25, 26, 27, 4];
+const ROWS: [u8; 8] = [13, 12, 16, 17, 18, 22, 23, 24 ];
+const COLS: [u8; 4] = [25 , 26, 27 , 4 ];
 
 pub fn init_io() -> Result<(), Box<dyn Error>> {
     let gpio = Gpio::new()?;
@@ -68,4 +68,30 @@ pub fn scan() -> Result<u32, Box<dyn Error>> {
         row_pin.set_high();
     }
     Ok(keymap)
+}
+
+pub fn debug_print(keys: u32) {
+    println!("");
+    for _col in &COLS {
+        print!("==");
+    }
+    println!("");
+    for (i, _col) in COLS.iter().enumerate() {
+        print!("{} ", i);
+    }
+    println!("");
+    for _col in &COLS {
+        print!("==");
+    }
+    println!("");
+    for (ir, _) in ROWS.iter().enumerate() {
+        for (ic, _) in COLS.iter().enumerate() {
+            if ic == 0 {
+                print!("{}: ", ir);
+            }
+            let key = get_bit_at(keys, (ir * COLS.len() + ic) as u8);
+            print!("{} ", if key { "x" } else { "o" });
+        }
+        println!("");
+    }
 }

@@ -76,6 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let keys = keyscan::scan()?;
         if last_keys != keys {
             debug!("Key event {:032b}: {}", keys, keys);
+            keyscan::debug_print(keys);
             if let Some(note) = notemap.get(&keys) {
                 // until we have breadth control, assume all keys unpressed means silence
                 if *note > 0 {
