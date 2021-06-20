@@ -44,6 +44,12 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     if !syn.set_polyphony(1) {
         warn!("Failed to set polyphony to 1");
     }
+    const FSYNTH_GAIN :f32 = 1.0;
+    syn.set_gain(FSYNTH_GAIN);
+    if syn.get_gain() != FSYNTH_GAIN {
+        warn!("Failed to set gain to {}", FSYNTH_GAIN);
+    }
+
     let adriver = audio::AudioDriver::new(&mut settings, &mut syn);
     //syn.sfload("/usr/share/sounds/sf2/FluidR3_GM.sf2", 1);
     syn.sfload("/usr/share/sounds/sf2/TimGM6mb.sf2", 1);
