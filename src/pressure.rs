@@ -51,7 +51,8 @@ impl Pressure {
 
     pub fn read(&mut self) -> Result<i32, Box<dyn Error>> {
         let pressure = Pressure::read_io(&mut self.i2c)?;
-        Ok(pressure)
+        /* TODO: implement calibration based on actually measured baseline and MAX */
+        Ok((pressure - self.baseline) / 1500)
     }
 
     fn read_io(i2c: &mut rppal::i2c::I2c) -> Result<i32, Box<dyn Error>> {

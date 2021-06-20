@@ -70,33 +70,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let notemap = notemap::generate();
 
-    let mut last_keys: u32 = 0;
     let mut last_note = 0;
     loop {
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(50));
 
         let keys = keyscan::scan()?;
         let pressure = sensor.read()?;
-        if last_keys != keys {
-            debug!("Key event {:032b}: {}", keys, keys);
-            debug!("Pressure {}", pressure);
-            keyscan::debug_print(keys);
-            if let Some(note) = notemap.get(&keys) {
-                // until we have breadth control, assume all keys unpressed means silence
-                if *note > 0 {
-                    syn.noteon(0, *note, 127);
-                }
-                if *note < 0 {
-                    // TODO: pick the right control messages.  For now, only one is supported
-                    shutdown();
-                    return Ok(());
-                }
-                // make before break
-                syn.noteoff(0, last_note);
-                last_note = *note;
-                debug!("last_note changed to {}", last_note);
+        debug!("Pressure: {} Key {:032b}: {}", pressure, keys, keys);
+        keyscan::debug_print(keys);
+        if let Some(note) = notemap.get(&keys) {
+            if pressure > 0 {
+                syn.noteon(0, *note, pressure);
             }
-            last_keys = keys;
+            if *note < 0 {
+                // TODO: pick the right control messages.  For now, only one is supported
+                shutdown();
+                return Ok(());
+            }
+            // make before break
+            //syn.noteoff(0, last_note);
+            last_note = *note;
+            debug!("last_note changed to {}", last_note);
         }
     }
 }
