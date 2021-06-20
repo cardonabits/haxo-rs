@@ -8,6 +8,7 @@ extern crate static_assertions;
 use log::{debug, /* error, info, */ warn};
 
 use fluidsynth::{audio, settings, synth};
+use std::cmp::{min, max};
 use std::error::Error;
 use std::process::Command;
 use std::thread;
@@ -76,21 +77,30 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let keys = keyscan::scan()?;
         let pressure = sensor.read()?;
-        debug!("Pressure: {} Key {:032b}: {}", pressure, keys, keys);
-        keyscan::debug_print(keys);
+        let vol = min(max(0, pressure), 127);
+        const MIDI_CC_VOLUME :i32 = 7;
+        syn.cc(0, MIDI_CC_VOLUME, vol);
+
+
         if let Some(note) = notemap.get(&keys) {
-            if pressure > 0 {
-                syn.noteon(0, *note, pressure);
+            if last_note != *note {
+                debug!("Pressure: {} Key {:032b}: {}", pressure, keys, keys);
+                keyscan::debug_print(keys);
+                if vol > 0 {
+                    syn.noteon(0, *note, 127);
+                    last_note = *note;
+                    debug!("last_note changed to {}", last_note);
+                }
+            }
+            if vol <= 0 && last_note > 0 {
+                syn.noteoff(0, last_note);
+                last_note = 0;
             }
             if *note < 0 {
                 // TODO: pick the right control messages.  For now, only one is supported
                 shutdown();
                 return Ok(());
             }
-            // make before break
-            //syn.noteoff(0, last_note);
-            last_note = *note;
-            debug!("last_note changed to {}", last_note);
         }
     }
 }

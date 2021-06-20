@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::error::Error;
 
 use log::{debug, error /* info, warn */};
@@ -52,7 +53,7 @@ impl Pressure {
     pub fn read(&mut self) -> Result<i32, Box<dyn Error>> {
         let pressure = Pressure::read_io(&mut self.i2c)?;
         /* TODO: implement calibration based on actually measured baseline and MAX */
-        Ok((pressure - self.baseline) / 1500)
+        Ok(min((pressure - self.baseline) / 1500, 127))
     }
 
     fn read_io(i2c: &mut rppal::i2c::I2c) -> Result<i32, Box<dyn Error>> {
