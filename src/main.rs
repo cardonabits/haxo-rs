@@ -15,6 +15,7 @@ use std::time::Duration;
 
 mod keyscan;
 mod notemap;
+mod pressure;
 
 fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
@@ -65,6 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Starting haxophone...");
 
     keyscan::init_io().expect("Failed to initialize scan GPIO");
+    let mut sensor = pressure::Pressure::init().expect("Failed to initialize pressure sensor");
 
     let notemap = notemap::generate();
 
@@ -74,8 +76,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         thread::sleep(Duration::from_millis(10));
 
         let keys = keyscan::scan()?;
+        let pressure = sensor.read()?;
         if last_keys != keys {
             debug!("Key event {:032b}: {}", keys, keys);
+            debug!("Pressure {}", pressure);
             keyscan::debug_print(keys);
             if let Some(note) = notemap.get(&keys) {
                 // until we have breadth control, assume all keys unpressed means silence

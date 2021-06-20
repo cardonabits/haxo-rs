@@ -1,12 +1,11 @@
-
 use std::error::Error;
 
 use rppal::gpio::Gpio;
 use rppal::gpio::Level;
 
 // BCM pin numbering
-const ROWS: [u8; 8] = [13, 12, 16, 17, 18, 22, 23, 24 ];
-const COLS: [u8; 4] = [25 , 26, 27 , 4 ];
+const ROWS: [u8; 8] = [13, 12, 16, 17, 18, 22, 23, 24];
+const COLS: [u8; 4] = [25, 26, 27, 4];
 
 pub fn init_io() -> Result<(), Box<dyn Error>> {
     let gpio = Gpio::new()?;
