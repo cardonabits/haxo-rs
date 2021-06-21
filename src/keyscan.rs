@@ -1,4 +1,6 @@
 use std::error::Error;
+use std::thread;
+use std::time::Duration;
 
 use rppal::gpio::Gpio;
 use rppal::gpio::Level;
@@ -6,6 +8,8 @@ use rppal::gpio::Level;
 // BCM pin numbering
 const ROWS: [u8; 8] = [13, 12, 16, 17, 18, 22, 23, 24];
 const COLS: [u8; 4] = [25, 26, 27, 4];
+
+const ROW_PULL_DOWN_TIME_MS: u64 = 1;
 
 pub fn init_io() -> Result<(), Box<dyn Error>> {
     let gpio = Gpio::new()?;
@@ -50,6 +54,7 @@ pub fn scan() -> Result<u32, Box<dyn Error>> {
     for row in &ROWS {
         let mut row_pin = gpio.get(*row)?.into_output();
         row_pin.set_low();
+        thread::sleep(Duration::from_millis(ROW_PULL_DOWN_TIME_MS));
 
         for col in &COLS {
             let col_pin = gpio.get(*col)?;
