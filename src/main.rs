@@ -8,7 +8,7 @@ extern crate static_assertions;
 use log::{debug, /* error, info, */ warn};
 
 use fluidsynth::{audio, settings, synth};
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::error::Error;
 use std::process::Command;
 use std::thread;
@@ -44,7 +44,7 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     if !syn.set_polyphony(1) {
         warn!("Failed to set polyphony to 1");
     }
-    const FSYNTH_GAIN :f32 = 1.0;
+    const FSYNTH_GAIN: f32 = 1.0;
     syn.set_gain(FSYNTH_GAIN);
     if syn.get_gain() != FSYNTH_GAIN {
         warn!("Failed to set gain to {}", FSYNTH_GAIN);
@@ -84,9 +84,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         let keys = keyscan::scan()?;
         let pressure = sensor.read()?;
         let vol = min(max(0, pressure), 127);
-        const MIDI_CC_VOLUME :i32 = 7;
+        const MIDI_CC_VOLUME: i32 = 7;
         syn.cc(0, MIDI_CC_VOLUME, vol);
-
 
         if let Some(note) = notemap.get(&keys) {
             if last_note != *note {

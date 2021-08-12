@@ -71,3 +71,52 @@ impl Pressure {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // Import names from outer (for mod tests) scope.
+    use super::*;
+
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn test_init() {
+        let mut _sensor = Pressure::init().expect("Failed to initialize pressure sensor");
+    }
+
+    #[test]
+    fn test_read() -> Result<(), Box<dyn Error>> {
+        let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
+        let _pressure = sensor.read()?;
+        Ok(())
+    }
+
+    /* This test is ignored by default because it expects pressure readings to change over time.
+    In order to do that, you might need to blow some air into the tube.
+
+    Run as
+    cargo test -- --ignored --show-output
+    */
+    #[test]
+    #[ignore]
+    fn test_read_100() -> Result<(), Box<dyn Error>> {
+        let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
+        let mut prev_read = 0;
+        let mut pressure_change_detected = false;
+        for _ in 0..100 {
+            let pressure = sensor.read()?;
+            if prev_read == 0 {
+                prev_read = pressure;
+            }
+            const MIN_EXPECTED_VARIATION: i32 = 5;
+            if prev_read + MIN_EXPECTED_VARIATION < pressure {
+                pressure_change_detected = true;
+                println!("prev_read: {}  pressure: {}", prev_read, pressure);
+            }
+            thread::sleep(Duration::from_millis(50))
+        }
+        assert!(pressure_change_detected);
+        Ok(())
+    }
+}
