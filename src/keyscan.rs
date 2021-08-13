@@ -109,13 +109,13 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_init() -> Result<(), Box<dyn Error>> {
+    fn init() -> Result<(), Box<dyn Error>> {
         init_io().expect("Failed to initialize scan GPIO");
         Ok(())
     }
 
     #[test]
-    fn test_read() -> Result<(), Box<dyn Error>> {
+    fn read() -> Result<(), Box<dyn Error>> {
         init_io().expect("Failed to initialize scan GPIO");
         let _keys = scan()?;
         Ok(())
@@ -125,11 +125,11 @@ mod tests {
     In order to pass, all keys must be pressed at least once.
 
     Run as
-    cargo test keys -- --ignored --nocapture
+    cargo test all_keys -- --ignored --nocapture
     */
     #[test]
     #[ignore]
-    fn test_keys_100() -> Result<(), Box<dyn Error>> {
+    fn all_keys() -> Result<(), Box<dyn Error>> {
         println!("Press all the keys at least once, in any order...");
         init_io().expect("Failed to initialize scan GPIO");
         let mut detected_keys :u32 = 0;

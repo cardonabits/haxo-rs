@@ -81,12 +81,12 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_init() {
+    fn init() {
         let mut _sensor = Pressure::init().expect("Failed to initialize pressure sensor");
     }
 
     #[test]
-    fn test_read() -> Result<(), Box<dyn Error>> {
+    fn read() -> Result<(), Box<dyn Error>> {
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
         let _pressure = sensor.read()?;
         Ok(())
@@ -96,11 +96,12 @@ mod tests {
     In order to do that, you might need to blow some air into the tube.
 
     Run as
-    cargo test pressure -- --ignored --nocapture
+    cargo test pressure_step -- --ignored --nocapture
     */
     #[test]
     #[ignore]
-    fn test_read_pressure_100() -> Result<(), Box<dyn Error>> {
+    fn pressure_step() -> Result<(), Box<dyn Error>> {
+        println!("Blow on the mouthpiece...");
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
         let mut prev_read = 0;
         let mut pressure_change_detected = false;
@@ -113,10 +114,45 @@ mod tests {
             if prev_read + MIN_EXPECTED_VARIATION < pressure {
                 pressure_change_detected = true;
                 println!("prev_read: {}  pressure: {}", prev_read, pressure);
+                break;
             }
             thread::sleep(Duration::from_millis(50))
         }
         assert!(pressure_change_detected);
         Ok(())
     }
+
+    /* Test the range of raw pressure readings coming from the sensor.
+
+    Run as
+    cargo test pressure_range -- --ignored --nocapture
+    */
+    #[test]
+    #[ignore]
+    fn read_io() -> Result<(), Box<dyn Error>> {
+        println!("Blow and suck on the mouthpiece...");
+        let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
+        let mut max_val :i32 = 0;
+        let mut min_val :i32 = i32::MAX;
+        let mut pressure_range_detected = false;
+        const EXPECTED_PRESSURE_RANGE :i32 = 900000;
+        for _ in 0..100 {
+            thread::sleep(Duration::from_millis(50));
+            let pressure = Pressure::read_io(&mut sensor.i2c)?;
+            println!("pressure: {}, min: {}, max: {}", pressure, min_val, max_val);
+            if pressure > max_val {
+                max_val = pressure;
+            }
+            if pressure < min_val {
+                min_val = pressure;
+            }
+            if max_val - min_val > EXPECTED_PRESSURE_RANGE {
+                pressure_range_detected = true;
+                break;
+            }
+        }
+        assert!(pressure_range_detected);
+        Ok(())
+    }
+
 }
