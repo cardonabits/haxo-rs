@@ -96,11 +96,11 @@ mod tests {
     In order to do that, you might need to blow some air into the tube.
 
     Run as
-    cargo test -- --ignored --show-output
+    cargo test pressure -- --ignored --nocapture
     */
     #[test]
     #[ignore]
-    fn test_read_100() -> Result<(), Box<dyn Error>> {
+    fn test_read_pressure_100() -> Result<(), Box<dyn Error>> {
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
         let mut prev_read = 0;
         let mut pressure_change_detected = false;

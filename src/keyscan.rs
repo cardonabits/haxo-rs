@@ -99,3 +99,53 @@ pub fn debug_print(keys: u32) {
         println!("");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // Import names from outer (for mod tests) scope.
+    use super::*;
+
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn test_init() -> Result<(), Box<dyn Error>> {
+        init_io().expect("Failed to initialize scan GPIO");
+        Ok(())
+    }
+
+    #[test]
+    fn test_read() -> Result<(), Box<dyn Error>> {
+        init_io().expect("Failed to initialize scan GPIO");
+        let _keys = scan()?;
+        Ok(())
+    }
+
+    /* This test is ignored by default because it requires user interaction.
+    In order to pass, all keys must be pressed at least once.
+
+    Run as
+    cargo test keys -- --ignored --nocapture
+    */
+    #[test]
+    #[ignore]
+    fn test_keys_100() -> Result<(), Box<dyn Error>> {
+        println!("Press all the keys at least once, in any order...");
+        init_io().expect("Failed to initialize scan GPIO");
+        let mut detected_keys :u32 = 0;
+        let mut last_keys :u32 = 0;
+        for _ in 0..500 {
+            let keys = scan()?;
+            thread::sleep(Duration::from_millis(50));
+            detected_keys |= keys;
+            if last_keys != keys {
+                println!("{:02}/22: detected_keys: {:x} keys: {:x} ", detected_keys.count_ones(), keys, detected_keys);
+                last_keys = keys;
+            }
+            if detected_keys == 0x2777377f {
+               return Ok(());
+            }
+        }
+        Err("Not all keys were detected")?
+    }
+}
