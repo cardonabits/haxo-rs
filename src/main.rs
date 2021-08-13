@@ -30,10 +30,14 @@ fn try_init_synth() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     if !settings.setint("audio.period-size", 444) {
         warn!("Setting audio.period-size in fluidsynth failed");
     }
-    // TODO: Find headphone device, as it may not always be hw:1
-    // if HDMI is disabled
-    if !settings.setstr("audio.alsa.device", "hw:1") {
-        warn!("Setting audio.alsa.device in fluidsynth failed");
+    // Depending on whether HDMI is connected, headphone will be card 1 or 0
+    for n in 1..0 {
+        if settings.setstr("audio.alsa.device", format!("hw:{}",n).as_str()) {
+            break;
+        }
+        if n == 0 {
+            warn!("Faild to attach synth to headphone output");
+        }
     }
     if !settings.setint("audio.realtime-prio", 99) {
         warn!("Setting audio.realtime-prio in fluidsynth failed");
