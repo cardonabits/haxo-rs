@@ -135,7 +135,7 @@ mod tests {
         let mut max_val :i32 = 0;
         let mut min_val :i32 = i32::MAX;
         let mut pressure_range_detected = false;
-        const EXPECTED_PRESSURE_RANGE :i32 = 900000;
+        const EXPECTED_PRESSURE_RANGE :i32 = 700000;
         for _ in 0..100 {
             thread::sleep(Duration::from_millis(50));
             let pressure = Pressure::read_io(&mut sensor.i2c)?;

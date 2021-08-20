@@ -6,8 +6,8 @@ use rppal::gpio::Gpio;
 use rppal::gpio::Level;
 
 // BCM pin numbering
-const ROWS: [u8; 8] = [13, 12, 16, 17, 18, 22, 23, 24];
-const COLS: [u8; 4] = [25, 26, 27, 4];
+const ROWS: [u8; 8] = [13, 12, 16, 17, 20, 22, 23, 24];
+const COLS: [u8; 3] = [25, 26, 27];
 
 const ROW_PULL_DOWN_TIME_MS: u64 = 1;
 
@@ -76,14 +76,17 @@ pub fn scan() -> Result<u32, Box<dyn Error>> {
 
 pub fn debug_print(keys: u32) {
     println!("");
+    print!("  ");
     for _col in &COLS {
         print!("==");
     }
     println!("");
+    print!("   ");
     for (i, _col) in COLS.iter().enumerate() {
         print!("{} ", i);
     }
     println!("");
+    print!("  ");
     for _col in &COLS {
         print!("==");
     }
@@ -130,6 +133,7 @@ mod tests {
     #[test]
     #[ignore]
     fn all_keys() -> Result<(), Box<dyn Error>> {
+        const NUM_KEYS :u32 = 22;
         println!("Press all the keys at least once, in any order...");
         init_io().expect("Failed to initialize scan GPIO");
         let mut detected_keys :u32 = 0;
@@ -139,10 +143,12 @@ mod tests {
             thread::sleep(Duration::from_millis(50));
             detected_keys |= keys;
             if last_keys != keys {
-                println!("{:02}/22: detected_keys: {:x} keys: {:x} ", detected_keys.count_ones(), keys, detected_keys);
+                println!("{:02}/{}: detected_keys: {:x} keys: {:x} ",
+                detected_keys.count_ones(), NUM_KEYS, keys, detected_keys);
                 last_keys = keys;
+                debug_print(detected_keys);
             }
-            if detected_keys == 0x2777377f {
+            if detected_keys.count_ones() == NUM_KEYS {
                return Ok(());
             }
         }
