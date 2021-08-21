@@ -1,7 +1,7 @@
 extern crate fluidsynth;
 
-use log::{/* debug, error, info, */ warn};
 use fluidsynth::{audio, settings, synth};
+use log::warn;
 
 pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
@@ -17,7 +17,7 @@ pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     }
     // Depending on whether HDMI is connected, headphone will be card 1 or 0
     for n in 1..0 {
-        if settings.setstr("audio.alsa.device", format!("hw:{}",n).as_str()) {
+        if settings.setstr("audio.alsa.device", format!("hw:{}", n).as_str()) {
             break;
         }
         if n == 0 {

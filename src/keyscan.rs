@@ -74,6 +74,7 @@ pub fn scan() -> Result<u32, Box<dyn Error>> {
     Ok(keymap)
 }
 
+#[allow(dead_code)]
 pub fn debug_print(keys: u32) {
     println!("");
     print!("  ");
@@ -133,23 +134,29 @@ mod tests {
     #[test]
     #[ignore]
     fn all_keys() -> Result<(), Box<dyn Error>> {
-        const NUM_KEYS :u32 = 22;
+        const NUM_KEYS: u32 = 22;
         println!("Press all the keys at least once, in any order...");
         init_io().expect("Failed to initialize scan GPIO");
-        let mut detected_keys :u32 = 0;
-        let mut last_keys :u32 = 0;
-        for _ in 0..500 {
+        let mut detected_keys: u32 = 0;
+        let mut last_keys: u32 = 0;
+        for _ in 0..5000 {
             let keys = scan()?;
             thread::sleep(Duration::from_millis(50));
             detected_keys |= keys;
             if last_keys != keys {
-                println!("{:02}/{}: detected_keys: {:x} keys: {:x} ",
-                detected_keys.count_ones(), NUM_KEYS, keys, detected_keys);
+                println!(
+                    "{:02}/{}: detected_keys: {:x} keys: {:x} ({}) ",
+                    detected_keys.count_ones(),
+                    NUM_KEYS,
+                    detected_keys,
+                    keys,
+                    keys
+                );
                 last_keys = keys;
                 debug_print(detected_keys);
             }
             if detected_keys.count_ones() == NUM_KEYS {
-               return Ok(());
+                return Ok(());
             }
         }
         Err("Not all keys were detected")?
