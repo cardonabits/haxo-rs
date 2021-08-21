@@ -1,4 +1,3 @@
-extern crate rand;
 extern crate time;
 
 #[macro_use]
