@@ -15,6 +15,7 @@ use std::time::Duration;
 use structopt::StructOpt;
 
 mod keyscan;
+mod midinotes;
 mod notemap;
 mod pressure;
 mod synth;
@@ -34,15 +35,6 @@ fn shutdown() {
         .expect("failed to halt system");
 }
 
-fn note_name_from_value<'a>(notes: &'a [(&str, i32)], value: &i32) -> Option<&'a str> {
-    for &n in notes {
-        if *value == n.1 {
-            return Some(n.0);
-        }
-    }
-    None
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
@@ -56,42 +48,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     keyscan::init_io().expect("Failed to initialize scan GPIO");
     let mut sensor = pressure::Pressure::init().expect("Failed to initialize pressure sensor");
 
-    // Note: Assuming Bb instruments
-    let notes = [
-        ("Low Bb", 44),
-        ("Low B", 45),
-        ("Low C", 46),
-        ("Low C#", 47),
-        ("Low D", 48),
-        ("Low D#", 49),
-        ("Low E", 50),
-        ("Low F", 51),
-        ("Low F#", 52),
-        ("Low G", 53),
-        ("Low Ab", 54),
-        ("Low A", 55),
-        ("Mid Bb", 56),
-        ("Mid B", 57),
-        ("Mid C", 58),
-        ("Mid C#", 59),
-        ("Mid D", 60),
-        ("Mid D#", 61),
-        ("Mid E", 62),
-        ("Mid F", 63),
-        ("Mid F#", 64),
-        ("Mid G", 65),
-        ("Mid Ab", 66),
-        ("Mid A", 67),
-        ("High Bb", 68),
-        ("High B", 69),
-        ("High C", 70),
-        ("High C#", 71),
-        ("High D", 72),
-        ("High D#", 73),
-        ("High E", 74),
-        ("High F", 75),
-        ("High F#", 76),
-    ];
     // Recording variables
     let mut recording = opt.record;
     let mut recording_index = 0;
@@ -113,20 +69,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if recording {
             if pressure > 10 && last_recorded != keys {
-                notemap.insert(keys, notes[recording_index].1);
+                notemap.insert(keys, midinotes::NOTES[recording_index].1);
                 last_recorded = keys;
-                println!("Keymap {} recorded for {}", keys, notes[recording_index].0);
+                println!(
+                    "Keymap {} recorded for {}",
+                    keys,
+                    midinotes::NOTES[recording_index].0
+                );
                 notemap::save(&notemap);
             }
 
             if pressure < -10 && keys == 0 && last_keys != 0 {
                 recording_index += 1;
-                if recording_index == notes.len() {
+                if recording_index == midinotes::NOTES.len() {
                     recording = false;
                     recording_index = 0;
                     println!("Done recording keymaps");
                 } else {
-                    println!("Next note is {}", notes[recording_index].0);
+                    println!("Next note is {}", midinotes::NOTES[recording_index].0);
                 }
             }
 
@@ -134,7 +94,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 if pressure < 10 && pressure > -10 {
                     println!(
                         "Blow to record this keymap ({}) for {}",
-                        keys, notes[recording_index].0
+                        keys,
+                        midinotes::NOTES[recording_index].0
                     );
                     println!("Release all keys while sucking to move on to next note.");
                 }
@@ -150,7 +111,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         pressure,
                         keys,
                         keys,
-                        note_name_from_value(&notes, note).unwrap_or("Unknown!?")
+                        midinotes::get_name(note).unwrap_or("Unknown!?")
                     );
                 };
                 if vol > 0 {
