@@ -2,8 +2,9 @@ extern crate time;
 
 #[macro_use]
 extern crate static_assertions;
+extern crate structopt;
 
-use log::debug;
+use log::{debug, log_enabled, Level};
 
 use std::cmp::max;
 use std::error::Error;
@@ -11,10 +12,19 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
+use structopt::StructOpt;
+
 mod keyscan;
 mod notemap;
 mod pressure;
 mod synth;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "haxo", about = "Make music on a haxophone")]
+struct Opt {
+    #[structopt(short, long)]
+    record: bool,
+}
 
 fn shutdown() {
     debug!("Bye...");
@@ -24,8 +34,20 @@ fn shutdown() {
         .expect("failed to halt system");
 }
 
+fn note_name_from_value<'a>(notes: &'a [(&str, i32)], value: &i32) -> Option<&'a str> {
+    for &n in notes {
+        if *value == n.1 {
+            return Some(n.0);
+        }
+    }
+    None
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
+
+    let opt = Opt::from_args();
+    println!("{:?}", opt);
 
     let (synth, _settings, _adriver) = synth::try_init();
 
@@ -54,24 +76,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         ("Mid C#", 59),
         ("Mid D", 60),
         ("Mid D#", 61),
-        ("Mid E", 63),
-        ("Mid F", 64),
-        ("Mid F#", 65),
-        ("Mid G", 66),
-        ("Mid Ab", 67),
-        ("Mid A", 68),
-        ("High Bb", 69),
-        ("High B", 70),
-        ("High C", 71),
-        ("High C#", 72),
-        ("High D", 73),
-        ("High D#", 74),
-        ("High E", 75),
-        ("High F", 76),
-        ("High F#", 77),
+        ("Mid E", 62),
+        ("Mid F", 63),
+        ("Mid F#", 64),
+        ("Mid G", 65),
+        ("Mid Ab", 66),
+        ("Mid A", 67),
+        ("High Bb", 68),
+        ("High B", 69),
+        ("High C", 70),
+        ("High C#", 71),
+        ("High D", 72),
+        ("High D#", 73),
+        ("High E", 74),
+        ("High F", 75),
+        ("High F#", 76),
     ];
     // Recording variables
-    let mut recording = true;
+    let mut recording = opt.record;
     let mut recording_index = 0;
     let mut last_keys = 0;
     let mut last_recorded = 0;
@@ -122,7 +144,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if let Some(note) = notemap.get(&keys) {
             if last_note != *note {
-                debug!("Pressure: {} Key {:032b}: {}", pressure, keys, keys);
+                if log_enabled!(Level::Debug) {
+                    debug!(
+                        "Pressure: {} Key {:032b}: {} Note: {}",
+                        pressure,
+                        keys,
+                        keys,
+                        note_name_from_value(&notes, note).unwrap_or("Unknown!?")
+                    );
+                };
                 if vol > 0 {
                     synth.noteon(0, *note, 127);
                     last_note = *note;
