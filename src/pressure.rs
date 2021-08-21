@@ -101,24 +101,33 @@ mod tests {
     #[test]
     #[ignore]
     fn pressure_step() -> Result<(), Box<dyn Error>> {
-        println!("Blow on the mouthpiece...");
+        println!("Blow and suck on the mouthpiece...");
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
-        let mut prev_read = 0;
-        let mut pressure_change_detected = false;
+        let mut pressure_positive_detected = false;
+        let mut pressure_negative_detected = false;
         for _ in 0..100 {
             let pressure = sensor.read()?;
-            if prev_read == 0 {
-                prev_read = pressure;
+
+            const EXPECTED_VARIATION: i32 = 10;
+
+            if pressure > EXPECTED_VARIATION {
+                pressure_positive_detected = true;
+                println!("+ pressure: {}", pressure);
             }
-            const MIN_EXPECTED_VARIATION: i32 = 5;
-            if prev_read + MIN_EXPECTED_VARIATION < pressure {
-                pressure_change_detected = true;
-                println!("prev_read: {}  pressure: {}", prev_read, pressure);
+
+            if pressure < -EXPECTED_VARIATION {
+                pressure_negative_detected = true;
+                println!("- pressure: {}", pressure);
+            }
+
+            if pressure_negative_detected && pressure_positive_detected {
                 break;
             }
             thread::sleep(Duration::from_millis(50))
         }
-        assert!(pressure_change_detected);
+        assert!(pressure_positive_detected);
+        assert!(pressure_negative_detected);
+
         Ok(())
     }
 
@@ -132,10 +141,10 @@ mod tests {
     fn read_io() -> Result<(), Box<dyn Error>> {
         println!("Blow and suck on the mouthpiece...");
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
-        let mut max_val :i32 = 0;
-        let mut min_val :i32 = i32::MAX;
+        let mut max_val: i32 = 0;
+        let mut min_val: i32 = i32::MAX;
         let mut pressure_range_detected = false;
-        const EXPECTED_PRESSURE_RANGE :i32 = 700000;
+        const EXPECTED_PRESSURE_RANGE: i32 = 700000;
         for _ in 0..100 {
             thread::sleep(Duration::from_millis(50));
             let pressure = Pressure::read_io(&mut sensor.i2c)?;
@@ -154,5 +163,4 @@ mod tests {
         assert!(pressure_range_detected);
         Ok(())
     }
-
 }
