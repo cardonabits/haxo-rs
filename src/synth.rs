@@ -1,0 +1,47 @@
+extern crate fluidsynth;
+
+use log::{/* debug, error, info, */ warn};
+use fluidsynth::{audio, settings, synth};
+
+pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
+    let mut settings = settings::Settings::new();
+    // try to optimize for low latency
+    if !settings.setstr("audio.driver", "alsa") {
+        warn!("Setting audio.driver in fluidsynth failed");
+    }
+    if !settings.setint("audio.periods", 3) {
+        warn!("Setting audio.periods in fluidsynth failed");
+    }
+    if !settings.setint("audio.period-size", 444) {
+        warn!("Setting audio.period-size in fluidsynth failed");
+    }
+    // Depending on whether HDMI is connected, headphone will be card 1 or 0
+    for n in 1..0 {
+        if settings.setstr("audio.alsa.device", format!("hw:{}",n).as_str()) {
+            break;
+        }
+        if n == 0 {
+            warn!("Faild to attach synth to headphone output");
+        }
+    }
+    if !settings.setint("audio.realtime-prio", 99) {
+        warn!("Setting audio.realtime-prio in fluidsynth failed");
+    }
+    let mut syn = synth::Synth::new(&mut settings);
+    // supposedly, assign tenor sax patch to midi channel 0
+    syn.program_change(0, 67);
+    if !syn.set_polyphony(1) {
+        warn!("Failed to set polyphony to 1");
+    }
+    const FSYNTH_GAIN: f32 = 1.0;
+    syn.set_gain(FSYNTH_GAIN);
+    if syn.get_gain() != FSYNTH_GAIN {
+        warn!("Failed to set gain to {}", FSYNTH_GAIN);
+    }
+
+    let adriver = audio::AudioDriver::new(&mut settings, &mut syn);
+    //syn.sfload("/usr/share/sounds/sf2/FluidR3_GM.sf2", 1);
+    syn.sfload("/usr/share/sounds/sf2/TimGM6mb.sf2", 1);
+    println!("Synth created");
+    (syn, settings, adriver)
+}
