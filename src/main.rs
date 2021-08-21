@@ -53,6 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut recording_index = 0;
     let mut last_keys = 0;
     let mut last_recorded = 0;
+    let mut record_next = false;
     // End of recording variables
 
     let mut notemap = notemap::generate();
@@ -77,17 +78,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                     midinotes::NOTES[recording_index].0
                 );
                 notemap::save(&notemap);
+                record_next = true;
             }
 
-            if pressure < -10 && keys == 0 && last_keys != 0 {
+            if record_next {
                 recording_index += 1;
+                record_next = false;
                 if recording_index == midinotes::NOTES.len() {
                     recording = false;
                     recording_index = 0;
                     println!("Done recording keymaps");
                 } else {
                     println!("Next note is {}", midinotes::NOTES[recording_index].0);
+                    println!("Draw to go back to previous note to add an alternate fingering.");
                 }
+            }
+
+            if pressure < -10 && recording_index > 0 {
+                recording_index -= 1;
+                println!("Back to {}", midinotes::NOTES[recording_index].0);
+                thread::sleep(Duration::from_millis(1000));
             }
 
             if keys != last_keys {
@@ -97,7 +107,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         keys,
                         midinotes::NOTES[recording_index].0
                     );
-                    println!("Release all keys while sucking to move on to next note.");
                 }
                 last_keys = keys;
             }

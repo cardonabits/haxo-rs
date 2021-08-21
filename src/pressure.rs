@@ -101,7 +101,7 @@ mod tests {
     #[test]
     #[ignore]
     fn pressure_step() -> Result<(), Box<dyn Error>> {
-        println!("Blow and suck on the mouthpiece...");
+        println!("Blow and draw air from the mouthpiece...");
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
         let mut pressure_positive_detected = false;
         let mut pressure_negative_detected = false;
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     #[ignore]
     fn read_io() -> Result<(), Box<dyn Error>> {
-        println!("Blow and suck on the mouthpiece...");
+        println!("Blow and draw on the mouthpiece...");
         let mut sensor = Pressure::init().expect("Failed to initialize pressure sensor");
         let mut max_val: i32 = 0;
         let mut min_val: i32 = i32::MAX;
