@@ -12,7 +12,7 @@ pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     if !settings.setint("audio.periods", 3) {
         warn!("Setting audio.periods in fluidsynth failed");
     }
-    if !settings.setint("audio.period-size", 444) {
+    if !settings.setint("audio.period-size", 64) {
         warn!("Setting audio.period-size in fluidsynth failed");
     }
     // Depending on whether HDMI is connected, headphone will be card 1 or 0
