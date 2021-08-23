@@ -78,6 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     midinotes::NOTES[recording_index].0
                 );
                 notemap::save(&notemap);
+                thread::sleep(Duration::from_millis(250));
                 record_next = true;
             }
 
@@ -90,14 +91,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("Done recording keymaps");
                 } else {
                     println!("Next note is {}", midinotes::NOTES[recording_index].0);
-                    println!("Draw to go back to previous note to add an alternate fingering.");
+                    println!("Draw with keys pressed to go back to previous note to add an alternate fingering.");
+                    println!("Draw with no keys pressed to skip to next note."); 
                 }
             }
 
-            if pressure < -10 && recording_index > 0 {
-                recording_index -= 1;
-                println!("Back to {}", midinotes::NOTES[recording_index].0);
-                thread::sleep(Duration::from_millis(1000));
+            if pressure < -10 {
+                if recording_index > 0 && keys > 0 {
+                    recording_index -= 1;
+                    println!("Back to {}", midinotes::NOTES[recording_index].0);
+                }
+                if keys == 0 {
+                    record_next = true;
+                }
+                thread::sleep(Duration::from_millis(1001));
             }
 
             if keys != last_keys {
