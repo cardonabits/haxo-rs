@@ -1,0 +1,20 @@
+[Unit]
+Description=haxophone
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=idle
+Restart=always
+RestartSec=1
+User=root
+Group=audio
+WorkingDir=/usr/share/haxo
+Environment=RUST_LOG=info
+ExecStart=/usr/local/bin/haxo001 \
+          --notemap-file /usr/share/haxo/notemap.json \
+          --bank-number 0 \
+          --sf2-file /usr/share/sounds/sf2/TenorSax2.sf2
+
+[Install]
+WantedBy=multi-user.target

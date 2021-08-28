@@ -3,7 +3,10 @@ extern crate fluidsynth;
 use fluidsynth::{audio, settings, synth};
 use log::warn;
 
-pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
+pub fn try_init(
+    sf2file: &str,
+    banknum: i32,
+) -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
     // try to optimize for low latency
     if !settings.setstr("audio.driver", "alsa") {
@@ -28,8 +31,6 @@ pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
         warn!("Setting audio.realtime-prio in fluidsynth failed");
     }
     let mut syn = synth::Synth::new(&mut settings);
-    // supposedly, assign tenor sax patch to midi channel 0
-    syn.program_change(0, 67);
     if !syn.set_polyphony(1) {
         warn!("Failed to set polyphony to 1");
     }
@@ -40,8 +41,13 @@ pub fn try_init() -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     }
 
     let adriver = audio::AudioDriver::new(&mut settings, &mut syn);
-    //syn.sfload("/usr/share/sounds/sf2/FluidR3_GM.sf2", 1);
-    syn.sfload("/usr/share/sounds/sf2/TimGM6mb.sf2", 1);
+    let sf2 = syn.sfload(sf2file, 1);
+
+    if sf2 == None {
+        warn!("Failed to load sound font file {}", sf2file);
+    }
+    // select bank number
+    syn.program_change(0, banknum);
     println!("Synth created");
     (syn, settings, adriver)
 }

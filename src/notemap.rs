@@ -5,9 +5,9 @@ use std::fs;
 use std::thread;
 use std::time::Duration;
 
-use super::midinotes;
+use log::warn;
 
-const FILENAME: &str = "notemap.json";
+use super::midinotes;
 
 pub struct NoteMap {
     recording: bool,
@@ -15,15 +15,19 @@ pub struct NoteMap {
     last_keys: u32,
     last_recorded: u32,
     record_next: bool,
+    filename: String,
     notemap: BTreeMap<u32, i32>,
 }
 
 impl NoteMap {
-    pub fn generate() -> Self {
-        let mapfile = fs::read_to_string(FILENAME);
+    pub fn generate(notemapfile: &str) -> Self {
+        let mapfile = fs::read_to_string(notemapfile);
         let mapfile = match mapfile {
             Ok(contents) => contents,
-            Err(_error) => String::from("{}"),
+            Err(_error) => {
+                warn!("Failed to load {}, creating a blank notemap.", notemapfile);
+                String::from("{}")
+            }
         };
         let notemap: BTreeMap<u32, i32> = serde_json::from_str(&mapfile).unwrap();
         NoteMap {
@@ -32,13 +36,14 @@ impl NoteMap {
             last_keys: 0,
             last_recorded: 0,
             record_next: false,
+            filename: String::from(notemapfile),
             notemap: notemap,
         }
     }
 
     pub fn save(&self) {
         let notemap_json = serde_json::to_string_pretty(&self.notemap).unwrap();
-        fs::write(FILENAME, notemap_json).expect("Unable to write file");
+        fs::write(&self.filename, notemap_json).expect("Unable to write file");
     }
 
     pub fn get(&self, key: &u32) -> std::option::Option<&i32> {
@@ -121,14 +126,15 @@ mod tests {
 
     #[test]
     fn update() {
-        let mut notemap = NoteMap::generate();
+        const TMP_NOTEMAP: &str = "/tmp/notemap.json";
+        let mut notemap = NoteMap::generate(TMP_NOTEMAP);
         notemap.insert(1234567, 66);
         notemap.save();
-        let notemap2 = NoteMap::generate();
+        let notemap2 = NoteMap::generate(TMP_NOTEMAP);
         assert_eq!(notemap2.get(&1234567), Some(&66));
         notemap.remove(&1234567);
         notemap.save();
-        let notemap2 = NoteMap::generate();
+        let notemap2 = NoteMap::generate(TMP_NOTEMAP);
         assert_eq!(notemap2.get(&1234567), None);
     }
 }

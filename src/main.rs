@@ -25,6 +25,12 @@ mod synth;
 struct Opt {
     #[structopt(short, long)]
     record: bool,
+    #[structopt(short, long, default_value = "/usr/share/sounds/sf2/FluidR3_GM.sf2")]
+    sf2_file: String,
+    #[structopt(short, long, default_value = "67")]
+    bank_number: i32,
+    #[structopt(short, long, default_value = "./notemap.json")]
+    notemap_file: String,
 }
 
 #[allow(dead_code)]
@@ -40,16 +46,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let opt = Opt::from_args();
-    println!("{:?}", opt);
+    debug!("{:?}", opt);
 
-    let (synth, _settings, _adriver) = synth::try_init();
+    let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.bank_number);
 
     println!("Starting haxophone...");
 
     keyscan::init_io().expect("Failed to initialize scan GPIO");
     let mut sensor = pressure::Pressure::init().expect("Failed to initialize pressure sensor");
 
-    let mut notemap = notemap::NoteMap::generate();
+    let mut notemap = notemap::NoteMap::generate(&opt.notemap_file);
     if opt.record {
         notemap.start_recording();
     }
