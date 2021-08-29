@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_note = 0;
     let mut control_command = false;
     loop {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(5));
 
         let keys = keyscan::scan()?;
         let pressure = sensor.read()?;
