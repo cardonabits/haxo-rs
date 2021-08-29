@@ -129,6 +129,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                             synth.noteoff(0, 53);
                         }
                     }
+
+                    Some("Low C") => {
+                        if control_command {
+                            control_command = false;
+                            info!("Shutting down");
+                            synth.noteon(0, 46, 127);
+                            synth.cc(0, MIDI_CC_VOLUME, 127);
+                            thread::sleep(Duration::from_millis(100));
+                            synth.noteoff(0, 46);
+                            shutdown();
+                        }
+                    }
                     _ => {
                         control_command = false;
                     }
