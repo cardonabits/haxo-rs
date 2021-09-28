@@ -146,6 +146,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+        } else {
+            if log_enabled!(Level::Debug) {
+                keyscan::debug_print(keys);
+            }
         }
     }
 }
