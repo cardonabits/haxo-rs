@@ -1,16 +1,15 @@
-extern crate time;
-
-#[macro_use]
-extern crate static_assertions;
-extern crate structopt;
-
 use log::{debug, info, log_enabled, Level};
+
+#[cfg(feature = "instrumentation")]
+use rppal::gpio::Gpio;
 
 use std::cmp::{max, min};
 use std::error::Error;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+
+use schedule_recv::periodic;
 
 use structopt::StructOpt;
 
@@ -42,6 +41,16 @@ fn shutdown() {
         .expect("failed to halt system");
 }
 
+const TICK_USECS: u64 = 2_000;
+
+// Limit the rate at which notes can be triggered to a really fast speed on a
+// saxophone: 10 notes per second, or 16th notes at 150 bpm.  This
+// avoids clicks and ugly artifacts.
+const MIN_NOTE_DURATION: u64 = 100_000;
+
+#[cfg(feature = "instrumentation")]
+const GPIO_UART_RXD: u8 = 15;
+
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
@@ -50,6 +59,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.bank_number);
     let mut current_bank = opt.bank_number;
+
+    let tick = periodic(Duration::from_micros(TICK_USECS));
+    let mut rate_limit = 0;
+    // Use UART RXD pin to monitor timing of periodic task.  This is easily
+    // accessible on the haxophone HAT when the console is disabled.
+    #[cfg(feature = "instrumentation")]
+    let mut busy_pin = Gpio::new()?.get(GPIO_UART_RXD)?.into_output();
 
     println!("Starting haxophone...");
 
@@ -64,7 +80,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_note = 0;
     let mut control_command = false;
     loop {
-        thread::sleep(Duration::from_millis(5));
+        tick.recv().unwrap();
+        #[cfg(feature = "instrumentation")]
+        busy_pin.set_high();
+
+        if rate_limit > 0 {
+            rate_limit -= 1;
+        }
 
         let keys = keyscan::scan()?;
         let pressure = sensor.read()?;
@@ -87,8 +109,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                         keys
                     );
                 };
-                if vol > 0 {
+                if vol > 0 && rate_limit == 0 {
                     synth.noteon(0, *note, 127);
+                    rate_limit = MIN_NOTE_DURATION / TICK_USECS;
                     last_note = *note;
                     debug!("last_note changed to {}", last_note);
                 }
@@ -151,5 +174,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 keyscan::debug_print(keys);
             }
         }
+        #[cfg(feature = "instrumentation")]
+        busy_pin.set_low();
     }
 }
