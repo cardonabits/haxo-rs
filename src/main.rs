@@ -43,13 +43,10 @@ fn shutdown() {
 
 const TICK_USECS: u64 = 2_000;
 
-// Limit the rate at which notes can be triggered to a really fast speed on a
-// saxophone: 10 notes per second, or 16th notes at 150 bpm.  This
-// avoids clicks and ugly artifacts.
-const MIN_NOTE_DURATION: u64 = 100_000;
-
 #[cfg(feature = "instrumentation")]
 const GPIO_UART_RXD: u8 = 15;
+#[cfg(feature = "instrumentation")]
+const GPIO_UART_TXD: u8 = 14;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
@@ -61,11 +58,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut current_bank = opt.bank_number;
 
     let tick = periodic(Duration::from_micros(TICK_USECS));
-    let mut rate_limit = 0;
     // Use UART RXD pin to monitor timing of periodic task.  This is easily
     // accessible on the haxophone HAT when the console is disabled.
     #[cfg(feature = "instrumentation")]
     let mut busy_pin = Gpio::new()?.get(GPIO_UART_RXD)?.into_output();
+    #[cfg(feature = "instrumentation")]
+    let mut noteon_pin = Gpio::new()?.get(GPIO_UART_TXD)?.into_output();
 
     println!("Starting haxophone...");
 
@@ -83,10 +81,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         tick.recv().unwrap();
         #[cfg(feature = "instrumentation")]
         busy_pin.set_high();
-
-        if rate_limit > 0 {
-            rate_limit -= 1;
-        }
 
         let keys = keyscan::scan()?;
         let pressure = sensor.read()?;
@@ -109,15 +103,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                         keys
                     );
                 };
-                if vol > 0 && rate_limit == 0 {
+                if vol > 0 {
+                    if last_note > 0 {
+                        synth.cc(0, MIDI_CC_VOLUME, 0);
+                        synth.noteoff(0, last_note);
+                        #[cfg(feature = "instrumentation")]
+                        noteon_pin.set_low();
+                        synth.cc(0, MIDI_CC_VOLUME, vol);
+                    }
                     synth.noteon(0, *note, 127);
-                    rate_limit = MIN_NOTE_DURATION / TICK_USECS;
+                    #[cfg(feature = "instrumentation")]
+                    noteon_pin.set_high();
                     last_note = *note;
                     debug!("last_note changed to {}", last_note);
                 }
             }
             if vol <= 0 && last_note > 0 {
                 synth.noteoff(0, last_note);
+                #[cfg(feature = "instrumentation")]
+                noteon_pin.set_low();
                 last_note = 0;
             }
 
