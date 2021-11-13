@@ -70,7 +70,7 @@ RUST_LOG=debug cargo run
 
 ## Testing
 
-You can run unit tests with `cargo test`
+You can run unit tests with `cargo test -- --test-threads=1`.  The tests cannot run in parallel as they will collide accessing hardware resources (GPIO, I2C bus, etc.).  The option `--test-threads=1` disables parallel execution of tests and forces them to run sequentially.
 
 ```
 running 7 tests
