@@ -48,7 +48,10 @@ to do that with with `raspi-config`.
 Software is developed on a headless (i.e. no display) Raspberry Pi.  The
 development host runs VSCode and connects to the headless Pi over ssh.
 
-![vscode](docs/images/vscode.png)
+The diagram below shows the development setup we use on the Pi Zero.  On the
+RP3 or 4 the setup is simpler as it has built-in USB and Ethernet.
+
+![devel setup](docs/images/haxo-devel-setup-simple.svg)
 
 An alternative setup could be to go full native on the Raspberry Pi, running
 your IDE there.
