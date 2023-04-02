@@ -8,6 +8,7 @@
   * [Overlay Filesystem](#overlay-filesystem)
   * [I2C](#i2c)
 - [Software Development Setup](#software-development-setup)
+  * [Package dependencies](#package-dependencies)
 - [Running the code](#running-the-code)
   * [Logging](#logging)
 - [Testing](#testing)
@@ -55,6 +56,13 @@ RP3 or 4 the setup is simpler as it has built-in USB and Ethernet.
 
 An alternative setup could be to go full native on the Raspberry Pi, running
 your IDE there.
+
+### Package dependencies
+
+You will need to install fluidsynth and its development libraries
+```
+apt install libfluidsynth-dev fluidsynth
+```
 
 ## Running the code
 
