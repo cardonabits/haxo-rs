@@ -110,12 +110,12 @@ impl NoteMap {
     }
 
     fn insert(&mut self, key: u32, value: i32) {
-        &self.notemap.insert(key, value);
+        let _ = &self.notemap.insert(key, value);
     }
 
     #[allow(dead_code)]
     fn remove(&mut self, key: &u32) {
-        &self.notemap.remove(key);
+        let _ = &self.notemap.remove(key);
     }
 }
 
