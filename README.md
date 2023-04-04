@@ -7,6 +7,7 @@
   * [Hardware](#hardware)
   * [Overlay Filesystem](#overlay-filesystem)
   * [I2C](#i2c)
+  * [Sound Card](#sound-card)
 - [Software Development Setup](#software-development-setup)
   * [Package dependencies](#package-dependencies)
 - [Running the code](#running-the-code)
@@ -43,6 +44,17 @@ This can be configured via `raspi-config`.
 
 You need to enable I2C on your Raspberry Pi.  The recommended and easiest way
 to do that with with `raspi-config`.
+
+### Sound Card
+
+To use the audio codec on the Haxo HAT, you need to load the `max98357a` driver.
+You can do that by editing `/boot/config.txt` as shown below
+
+```
+# Enable audio (loads snd_bcm2835)
+# dtparam=audio=on
+dtoverlay=max98357a
+```
 
 ## Software Development Setup
 
