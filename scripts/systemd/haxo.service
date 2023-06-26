@@ -13,7 +13,7 @@ WorkingDir=/usr/share/haxo
 Environment=RUST_LOG=info
 ExecStart=/usr/local/bin/haxo001 \
           --notemap-file /usr/share/haxo/notemap.json \
-          --bank-number 66 \
+          --prog-number 66 \
           --sf2-file /usr/share/sounds/sf2/TimGM6mb.sf2
 
 [Install]
