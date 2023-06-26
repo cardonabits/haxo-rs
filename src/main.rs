@@ -32,6 +32,11 @@ struct Opt {
     notemap_file: String,
 }
 
+enum Mode {
+    Play,
+    Control,
+}
+
 #[allow(dead_code)]
 fn shutdown() {
     debug!("Bye...");
@@ -76,7 +81,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut last_note = 0;
-    let mut control_command = false;
+    let mut mode = Mode::Play;
+    const NEG_PRESS_COUNTDOWN_MS: u32 = 500u32;
+    const NEG_PRESS_INIT_VAL: u32 = NEG_PRESS_COUNTDOWN_MS * 1000 / TICK_USECS;
+    let mut neg_pressure_countdown: u32 = NEG_PRESS_INIT_VAL;
     loop {
         tick.recv().unwrap();
         #[cfg(feature = "instrumentation")]
@@ -125,51 +133,21 @@ fn main() -> Result<(), Box<dyn Error>> {
                 last_note = 0;
             }
 
-            // Control commands
+            // Negative pressure needs to hold for a minimum duration to trigger a mode change
             if pressure < -10 {
+                neg_pressure_countdown = neg_pressure_countdown.wrapping_sub(1);
+            } else {
+                neg_pressure_countdown = NEG_PRESS_INIT_VAL;
+            }
+
+            // Enter Control Mode 
+            if neg_pressure_countdown == 0 {
                 match midinotes::get_name(note) {
                     Some("Low Bb") => {
-                        control_command = true;
-                        info!("Prepared to receive for control command");
-                    }
-                    Some("Low F") => {
-                        if control_command {
-                            control_command = false;
-                            current_bank = max(0, current_bank - 1);
-                            synth.program_change(0, current_bank);
-                            info!("New MIDI bank number {}", current_bank);
-                            synth.noteon(0, 51, 127);
-                            synth.cc(0, MIDI_CC_VOLUME, 127);
-                            thread::sleep(Duration::from_millis(100));
-                            synth.noteoff(0, 51);
-                        }
-                    }
-                    Some("Low G") => {
-                        if control_command {
-                            control_command = false;
-                            current_bank = min(128, current_bank + 1);
-                            synth.program_change(0, current_bank);
-                            info!("New MIDI bank number {}", current_bank);
-                            synth.noteon(0, 53, 127);
-                            synth.cc(0, MIDI_CC_VOLUME, 127);
-                            thread::sleep(Duration::from_millis(100));
-                            synth.noteoff(0, 53);
-                        }
-                    }
-
-                    Some("Low C") => {
-                        if control_command {
-                            control_command = false;
-                            info!("Shutting down");
-                            synth.noteon(0, 46, 127);
-                            synth.cc(0, MIDI_CC_VOLUME, 127);
-                            thread::sleep(Duration::from_millis(100));
-                            synth.noteoff(0, 46);
-                            shutdown();
-                        }
+                        mode = Mode::Control;
+                        info!("Prepared to receive control command");
                     }
                     _ => {
-                        control_command = false;
                     }
                 }
             }
