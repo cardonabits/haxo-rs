@@ -3,11 +3,11 @@ use log::{debug, info, log_enabled, Level};
 #[cfg(feature = "instrumentation")]
 use rppal::gpio::Gpio;
 
-use std::cmp::{max, min};
+use std::cmp::max;
 use std::error::Error;
 use std::process::Command;
-use std::thread;
 use std::time::Duration;
+use std::thread;
 
 use schedule_recv::periodic;
 
@@ -32,6 +32,7 @@ struct Opt {
     notemap_file: String,
 }
 
+#[derive(PartialEq)]
 enum Mode {
     Play,
     Control,
@@ -46,7 +47,7 @@ fn shutdown() {
         .expect("failed to halt system");
 }
 
-const TICK_USECS: u64 = 2_000;
+const TICK_USECS: u32 = 2_000;
 
 #[cfg(feature = "instrumentation")]
 const GPIO_UART_RXD: u8 = 15;
@@ -62,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.bank_number);
     let mut current_bank = opt.bank_number;
 
-    let tick = periodic(Duration::from_micros(TICK_USECS));
+    let tick = periodic(Duration::from_micros(TICK_USECS as u64));
     // Use UART RXD pin to monitor timing of periodic task.  This is easily
     // accessible on the haxophone HAT when the console is disabled.
     #[cfg(feature = "instrumentation")]
@@ -98,6 +99,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if notemap.is_recording() {
             notemap.record(keys, pressure);
+        }
+
+        if mode == Mode::Control {
+            info!(
+                "TODO! Control Key {:032b}: {}",
+                keys,
+                keys
+            );
+            // All three left hand palm keys pressed at once
+            if keys == 292 {
+                synth.noteon(0, 70, 50);
+                synth.cc(0, MIDI_CC_VOLUME, 50);
+                thread::sleep(Duration::from_millis(100));
+                synth.noteoff(0, 70);
+                mode = Mode::Play;
+            }
+            continue;
         }
 
         if let Some(note) = notemap.get(&keys) {
@@ -145,7 +163,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match midinotes::get_name(note) {
                     Some("Low Bb") => {
                         mode = Mode::Control;
-                        info!("Prepared to receive control command");
+                        synth.noteon(0, 71, 50);
+                        synth.cc(0, MIDI_CC_VOLUME, 50);
+                        thread::sleep(Duration::from_millis(100));
+                        synth.noteoff(0, 71);
+                        info!("Enter Control Mode");
                     }
                     _ => {
                     }
