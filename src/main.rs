@@ -13,6 +13,8 @@ use schedule_recv::periodic;
 
 use structopt::StructOpt;
 
+use fluidsynth::synth::Synth;
+
 mod keyscan;
 mod midinotes;
 mod notemap;
@@ -45,6 +47,14 @@ fn shutdown() {
         .arg("/usr/sbin/halt")
         .status()
         .expect("failed to halt system");
+}
+
+fn beep(synth: &Synth, note: i32, vol: i32) {
+    const MIDI_CC_VOLUME: i32 = 7;
+    synth.noteon(0, note, vol);
+    synth.cc(0, MIDI_CC_VOLUME, vol);
+    thread::sleep(Duration::from_millis(100));
+    synth.noteoff(0, vol);
 }
 
 const TICK_USECS: u32 = 2_000;
@@ -109,10 +119,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             );
             // All three left hand palm keys pressed at once
             if keys == 292 {
-                synth.noteon(0, 70, 50);
-                synth.cc(0, MIDI_CC_VOLUME, 50);
-                thread::sleep(Duration::from_millis(100));
-                synth.noteoff(0, 70);
+                beep(&synth, 70, 50);
                 mode = Mode::Play;
             }
             continue;
@@ -163,10 +170,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match midinotes::get_name(note) {
                     Some("Low Bb") => {
                         mode = Mode::Control;
-                        synth.noteon(0, 71, 50);
-                        synth.cc(0, MIDI_CC_VOLUME, 50);
-                        thread::sleep(Duration::from_millis(100));
-                        synth.noteoff(0, 71);
+                        beep(&synth, 71, 50);
                         info!("Enter Control Mode");
                     }
                     _ => {
