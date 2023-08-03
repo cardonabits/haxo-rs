@@ -1,5 +1,6 @@
 use log::{debug, info, log_enabled, Level};
 
+
 #[cfg(feature = "instrumentation")]
 use rppal::gpio::Gpio;
 
@@ -15,6 +16,7 @@ use structopt::StructOpt;
 
 use fluidsynth::synth::Synth;
 
+mod commands;
 mod keyscan;
 mod midinotes;
 mod notemap;
@@ -71,7 +73,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     debug!("{:?}", opt);
 
     let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.bank_number);
-    let mut current_bank = opt.bank_number;
 
     let tick = periodic(Duration::from_micros(TICK_USECS as u64));
     // Use UART RXD pin to monitor timing of periodic task.  This is easily
@@ -93,6 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut last_note = 0;
     let mut mode = Mode::Play;
+    let mut cmd = commands::Command::new(&synth);
     const NEG_PRESS_COUNTDOWN_MS: u32 = 500u32;
     const NEG_PRESS_INIT_VAL: u32 = NEG_PRESS_COUNTDOWN_MS * 1000 / TICK_USECS;
     let mut neg_pressure_countdown: u32 = NEG_PRESS_INIT_VAL;
@@ -112,11 +114,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if mode == Mode::Control {
-            info!(
-                "TODO! Control Key {:032b}: {}",
-                keys,
-                keys
-            );
+            cmd.process(keys);
             // All three left hand palm keys pressed at once
             if keys == 292 {
                 beep(&synth, 70, 50);
