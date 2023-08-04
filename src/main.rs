@@ -1,22 +1,18 @@
 use log::{debug, info, log_enabled, Level};
 
-
 #[cfg(feature = "instrumentation")]
 use rppal::gpio::Gpio;
 
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::error::Error;
 use std::process::Command;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 use schedule_recv::periodic;
 
 use structopt::StructOpt;
 
-use fluidsynth::synth::Synth;
-
-mod commands;
 mod keyscan;
 mod midinotes;
 mod notemap;
@@ -31,15 +27,9 @@ struct Opt {
     #[structopt(short, long, default_value = "/usr/share/sounds/sf2/FluidR3_GM.sf2")]
     sf2_file: String,
     #[structopt(short, long, default_value = "67")]
-    prog_number: i32,
+    bank_number: i32,
     #[structopt(short, long, default_value = "./notemap.json")]
     notemap_file: String,
-}
-
-#[derive(PartialEq)]
-enum Mode {
-    Play,
-    Control,
 }
 
 #[allow(dead_code)]
@@ -51,15 +41,7 @@ fn shutdown() {
         .expect("failed to halt system");
 }
 
-fn beep(synth: &Synth, note: i32, vol: i32) {
-    const MIDI_CC_VOLUME: i32 = 7;
-    synth.noteon(0, note, vol);
-    synth.cc(0, MIDI_CC_VOLUME, vol);
-    thread::sleep(Duration::from_millis(100));
-    synth.noteoff(0, vol);
-}
-
-const TICK_USECS: u32 = 2_000;
+const TICK_USECS: u64 = 2_000;
 
 #[cfg(feature = "instrumentation")]
 const GPIO_UART_RXD: u8 = 15;
@@ -72,9 +54,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let opt = Opt::from_args();
     debug!("{:?}", opt);
 
-    let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.prog_number);
+    let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.bank_number);
+    let mut current_bank = opt.bank_number;
 
-    let tick = periodic(Duration::from_micros(TICK_USECS as u64));
+    let tick = periodic(Duration::from_micros(TICK_USECS));
     // Use UART RXD pin to monitor timing of periodic task.  This is easily
     // accessible on the haxophone HAT when the console is disabled.
     #[cfg(feature = "instrumentation")]
@@ -93,11 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut last_note = 0;
-    let mut mode = Mode::Play;
-    let mut cmd = commands::Command::new(&synth, opt.prog_number);
-    const NEG_PRESS_COUNTDOWN_MS: u32 = 500u32;
-    const NEG_PRESS_INIT_VAL: u32 = NEG_PRESS_COUNTDOWN_MS * 1000 / TICK_USECS;
-    let mut neg_pressure_countdown: u32 = NEG_PRESS_INIT_VAL;
+    let mut control_command = false;
     loop {
         tick.recv().unwrap();
         #[cfg(feature = "instrumentation")]
@@ -111,16 +90,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if notemap.is_recording() {
             notemap.record(keys, pressure);
-        }
-
-        if mode == Mode::Control {
-            cmd.process(keys);
-            // All three left hand palm keys pressed at once
-            if keys == 0x124 {
-                beep(&synth, 70, 50);
-                mode = Mode::Play;
-            }
-            continue;
         }
 
         if let Some(note) = notemap.get(&keys) {
@@ -156,22 +125,51 @@ fn main() -> Result<(), Box<dyn Error>> {
                 last_note = 0;
             }
 
-            // Negative pressure needs to hold for a minimum duration to trigger a mode change
+            // Control commands
             if pressure < -10 {
-                neg_pressure_countdown = neg_pressure_countdown.wrapping_sub(1);
-            } else {
-                neg_pressure_countdown = NEG_PRESS_INIT_VAL;
-            }
-
-            // Enter Control Mode 
-            if neg_pressure_countdown == 0 {
                 match midinotes::get_name(note) {
                     Some("Low Bb") => {
-                        mode = Mode::Control;
-                        beep(&synth, 71, 50);
-                        info!("Enter Control Mode");
+                        control_command = true;
+                        info!("Prepared to receive for control command");
+                    }
+                    Some("Low F") => {
+                        if control_command {
+                            control_command = false;
+                            current_bank = max(0, current_bank - 1);
+                            synth.program_change(0, current_bank);
+                            info!("New MIDI bank number {}", current_bank);
+                            synth.noteon(0, 51, 127);
+                            synth.cc(0, MIDI_CC_VOLUME, 127);
+                            thread::sleep(Duration::from_millis(100));
+                            synth.noteoff(0, 51);
+                        }
+                    }
+                    Some("Low G") => {
+                        if control_command {
+                            control_command = false;
+                            current_bank = min(128, current_bank + 1);
+                            synth.program_change(0, current_bank);
+                            info!("New MIDI bank number {}", current_bank);
+                            synth.noteon(0, 53, 127);
+                            synth.cc(0, MIDI_CC_VOLUME, 127);
+                            thread::sleep(Duration::from_millis(100));
+                            synth.noteoff(0, 53);
+                        }
+                    }
+
+                    Some("Low C") => {
+                        if control_command {
+                            control_command = false;
+                            info!("Shutting down");
+                            synth.noteon(0, 46, 127);
+                            synth.cc(0, MIDI_CC_VOLUME, 127);
+                            thread::sleep(Duration::from_millis(100));
+                            synth.noteoff(0, 46);
+                            shutdown();
+                        }
                     }
                     _ => {
+                        control_command = false;
                     }
                 }
             }
