@@ -1,0 +1,23 @@
+[Unit]
+Description=blink Raspberry Pi Zero ACT led while haxo service is starting
+After=haxo.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+User=root
+Group=audio
+
+ExecStartPre=/bin/bash -c \
+          "echo none > /sys/class/leds/ACT/trigger"
+ExecStart=/bin/bash -c \
+          "for i in {1..30}; \
+          do echo 0 > /sys/class/leds/ACT/brightness; \
+          sleep 0.1; \
+          echo 1 > /sys/class/leds/ACT/brightness; \
+          sleep 0.1; \
+          done;"
+
+[Install]
+WantedBy=multi-user.target
