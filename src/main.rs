@@ -1,14 +1,13 @@
 use log::{debug, info, log_enabled, Level};
 
-
 #[cfg(feature = "instrumentation")]
 use rppal::gpio::Gpio;
 
 use std::cmp::max;
 use std::error::Error;
 use std::process::Command;
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 use schedule_recv::periodic;
 
@@ -18,6 +17,8 @@ use fluidsynth::synth::Synth;
 
 mod commands;
 mod keyscan;
+#[cfg(feature = "midi")]
+mod midi;
 mod midinotes;
 mod notemap;
 mod pressure;
@@ -163,7 +164,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 neg_pressure_countdown = NEG_PRESS_INIT_VAL;
             }
 
-            // Enter Control Mode 
+            // Enter Control Mode
             if neg_pressure_countdown == 0 {
                 match midinotes::get_name(note) {
                     Some("Low Bb") => {
@@ -171,8 +172,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         beep(&synth, 71, 50);
                         info!("Enter Control Mode");
                     }
-                    _ => {
-                    }
+                    _ => {}
                 }
             }
         } else {
