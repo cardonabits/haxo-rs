@@ -57,7 +57,7 @@ fn beep(synth: &Synth, note: i32, vol: i32) {
     synth.noteon(0, note, vol);
     synth.cc(0, MIDI_CC_VOLUME, vol);
     thread::sleep(Duration::from_millis(100));
-    synth.noteoff(0, vol);
+    synth.noteoff(0, note);
 }
 
 const TICK_USECS: u32 = 2_000;
@@ -74,6 +74,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     debug!("{:?}", opt);
 
     let (synth, _settings, _adriver) = synth::try_init(&opt.sf2_file, opt.prog_number);
+    #[cfg(feature = "midi")]
+    let mut midi_out = midi::MidiOut::new()?;
 
     let tick = periodic(Duration::from_micros(TICK_USECS as u64));
     // Use UART RXD pin to monitor timing of periodic task.  This is easily
@@ -109,6 +111,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         let vol = max(0, pressure);
         const MIDI_CC_VOLUME: i32 = 7;
         synth.cc(0, MIDI_CC_VOLUME, vol);
+        #[cfg(feature = "midi")]
+        midi_out.cc(MIDI_CC_VOLUME, vol);
 
         if notemap.is_recording() {
             notemap.record(keys, pressure);
@@ -138,12 +142,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                 if vol > 0 {
                     if last_note > 0 {
                         synth.cc(0, MIDI_CC_VOLUME, 0);
+                        #[cfg(feature = "midi")]
+                        midi_out.cc(MIDI_CC_VOLUME, 0);
                         synth.noteoff(0, last_note);
+                        #[cfg(feature = "midi")]
+                        midi_out.noteoff(last_note);
                         #[cfg(feature = "instrumentation")]
                         noteon_pin.set_low();
                         synth.cc(0, MIDI_CC_VOLUME, vol);
+                        #[cfg(feature = "midi")]
+                        midi_out.cc(MIDI_CC_VOLUME, vol);
                     }
                     synth.noteon(0, *note, 127);
+                    #[cfg(feature = "midi")]
+                    midi_out.noteon(*note, 127);
                     #[cfg(feature = "instrumentation")]
                     noteon_pin.set_high();
                     last_note = *note;
@@ -152,6 +164,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             if vol <= 0 && last_note > 0 {
                 synth.noteoff(0, last_note);
+                #[cfg(feature = "midi")]
+                midi_out.noteoff(last_note);
                 #[cfg(feature = "instrumentation")]
                 noteon_pin.set_low();
                 last_note = 0;

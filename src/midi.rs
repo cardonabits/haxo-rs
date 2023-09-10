@@ -4,7 +4,7 @@ use std::error::Error;
 
 use log::info;
 
-struct MidiOut {
+pub struct MidiOut {
     conn_out: MidiOutputConnection,
 }
 
@@ -38,17 +38,17 @@ impl MidiOut {
         Ok(MidiOut { conn_out })
     }
 
-    pub fn noteon(&mut self, note: i32, vol: i32) {
+    pub fn noteon(&mut self, note: i32, vel: i32) {
         const NOTE_ON_MSG: u8 = 0x90;
-        let _ = self.conn_out.send(&[NOTE_ON_MSG, note as u8, vol as u8]);
+        let _ = self.conn_out.send(&[NOTE_ON_MSG, note as u8, vel as u8]);
     }
     pub fn cc(&mut self, msg: i32, val: i32) {
         const CC_MSG: u8 = 0xB0;
         let _ = self.conn_out.send(&[CC_MSG, msg as u8, val as u8]);
     }
-    pub fn noteoff(&mut self, note: i32, vol: i32) {
+    pub fn noteoff(&mut self, note: i32) {
         const NOTE_OFF_MSG: u8 = 0x80;
-        let _ = self.conn_out.send(&[NOTE_OFF_MSG, note as u8, vol as u8]);
+        let _ = self.conn_out.send(&[NOTE_OFF_MSG, note as u8, 0u8]);
     }
 }
 
@@ -72,7 +72,7 @@ mod tests {
         let mut midi = MidiOut::new()?;
         midi.noteon(66, 100);
         sleep(Duration::from_millis(1000));
-        midi.noteoff(66, 100);
+        midi.noteoff(66);
         Ok(())
     }
 
@@ -88,7 +88,7 @@ mod tests {
         sleep(Duration::from_millis(1000));
         midi.cc(MIDI_CC_VOLUME, 10);
         sleep(Duration::from_millis(1000));
-        midi.noteoff(66, 100);
+        midi.noteoff(66);
         Ok(())
     }
 }
