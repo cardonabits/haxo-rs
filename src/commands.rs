@@ -1,11 +1,11 @@
-use std::cmp::{min,max};
-use std::time::Duration;
+use std::cmp::{max, min};
 use std::thread;
+use std::time::Duration;
 
-use log::info;
 use fluidsynth::synth::Synth;
+use log::info;
 
-#[derive(Copy,Clone,PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 enum CommandKeys {
     ChangeProgUp,
     ChangeProgFastUp,
@@ -33,7 +33,7 @@ pub(crate) struct Command<'a> {
     last_cmd_key: CommandKeys,
 }
 
-impl<'a> Command<'a>{
+impl<'a> Command<'a> {
     pub(crate) fn new(synth: &'a Synth, prog_number: i32) -> Self {
         Command {
             synth: synth,
@@ -52,18 +52,18 @@ impl<'a> Command<'a>{
             CommandKeys::ChangeProgUp => self.change_program(1),
             CommandKeys::ChangeProgFastUp => self.change_program(10),
             CommandKeys::ChangeProgDown => self.change_program(-1),
-            CommandKeys::ChangeProgFastDown=> self.change_program(-10),
-            _ => (), 
+            CommandKeys::ChangeProgFastDown => self.change_program(-10),
+            _ => (),
         };
     }
 
-    fn change_program(self: &mut Self, change:i32) {
-            self.prog_number = max(0, min(127, self.prog_number + change));
-            self.synth.program_change(0, self.prog_number);
-            info!("New MIDI program number {}", self.prog_number);
-            self.synth.noteon(0, 53, 60);
-            self.synth.cc(0, MIDI_CC_VOLUME, 60);
-            thread::sleep(Duration::from_millis(100));
-            self.synth.noteoff(0, 53);
+    fn change_program(self: &mut Self, change: i32) {
+        self.prog_number = max(0, min(127, self.prog_number + change));
+        self.synth.program_change(0, self.prog_number);
+        info!("New MIDI program number {}", self.prog_number);
+        self.synth.noteon(0, 53, 60);
+        self.synth.cc(0, MIDI_CC_VOLUME, 60);
+        thread::sleep(Duration::from_millis(100));
+        self.synth.noteoff(0, 53);
     }
 }
