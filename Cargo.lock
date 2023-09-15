@@ -177,6 +177,7 @@ dependencies = [
 name = "haxo001"
 version = "0.1.0"
 dependencies = [
+ "alsa",
  "env_logger",
  "fluidsynth",
  "log",
