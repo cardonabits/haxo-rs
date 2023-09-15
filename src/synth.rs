@@ -1,7 +1,9 @@
 extern crate fluidsynth;
 
-use fluidsynth::{audio, settings, synth, midi};
-use log::warn;
+use fluidsynth::{audio, settings, synth};
+use log::{info, warn};
+
+use crate::alsa;
 
 pub fn try_init(
     sf2file: &str,
@@ -18,17 +20,17 @@ pub fn try_init(
     if !settings.setint("audio.period-size", 64) {
         warn!("Setting audio.period-size in fluidsynth failed");
     }
-    // Depending on whether HDMI is connected, headphone will be card 1 or 0
-    for n in 1..0 {
-        if settings.setstr("audio.alsa.device", format!("hw:{}", n).as_str()) {
-            break;
-        }
-        if n == 0 {
-            warn!("Faild to attach synth to headphone output");
-        }
+
+    let alsa_dev = alsa::get_device();
+    if alsa_dev.is_err() {
+        panic!("Failed to find audio output device");
+    }
+    let alsa_dev = alsa_dev.unwrap();
+    if !settings.setstr("audio.alsa.device", &alsa_dev) {
+        warn!("Failed to attach synth to headphone output {}", &alsa_dev);
     }
     if !settings.setint("audio.realtime-prio", 99) {
-        warn!("Setting audio.realtime-prio in fluidsynth failed");
+        info!("Setting audio.realtime-prio in fluidsynth: running as non-root");
     }
     let mut syn = synth::Synth::new(&mut settings);
 
