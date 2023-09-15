@@ -15,6 +15,7 @@ use structopt::StructOpt;
 
 use fluidsynth::synth::Synth;
 
+mod alsa;
 mod commands;
 mod keyscan;
 #[cfg(feature = "midi")]
