@@ -11,13 +11,13 @@ pub fn try_init(
 ) -> (synth::Synth, settings::Settings, audio::AudioDriver) {
     let mut settings = settings::Settings::new();
     // try to optimize for low latency
-    if !settings.setstr("audio.driver", "alsa") {
+    if settings.setstr("audio.driver", "alsa") {
         warn!("Setting audio.driver in fluidsynth failed");
     }
-    if !settings.setint("audio.periods", 3) {
+    if settings.setint("audio.periods", 3) {
         warn!("Setting audio.periods in fluidsynth failed");
     }
-    if !settings.setint("audio.period-size", 64) {
+    if settings.setint("audio.period-size", 64) {
         warn!("Setting audio.period-size in fluidsynth failed");
     }
 
@@ -26,11 +26,11 @@ pub fn try_init(
         panic!("Failed to find audio output device");
     }
     let alsa_dev = alsa_dev.unwrap();
-    if !settings.setstr("audio.alsa.device", &alsa_dev) {
+    if settings.setstr("audio.alsa.device", &alsa_dev) {
         warn!("Failed to attach synth to headphone output {}", &alsa_dev);
     }
-    if !settings.setint("audio.realtime-prio", 99) {
-        info!("Setting audio.realtime-prio in fluidsynth: running as non-root");
+    if settings.setint("audio.realtime-prio", 99) {
+        info!("Setting audio.realtime-prio in fluidsynth failed");
     }
     let mut syn = synth::Synth::new(&mut settings);
 
