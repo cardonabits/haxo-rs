@@ -1,6 +1,6 @@
 extern crate fluidsynth;
 
-use fluidsynth::{audio, settings, synth};
+use fluidsynth::{audio, settings, synth, midi};
 use log::warn;
 
 pub fn try_init(
@@ -31,9 +31,7 @@ pub fn try_init(
         warn!("Setting audio.realtime-prio in fluidsynth failed");
     }
     let mut syn = synth::Synth::new(&mut settings);
-    if !syn.set_polyphony(1) {
-        warn!("Failed to set polyphony to 1");
-    }
+
     const FSYNTH_GAIN: f32 = 1.0;
     syn.set_gain(FSYNTH_GAIN);
     if syn.get_gain() != FSYNTH_GAIN {
@@ -41,6 +39,38 @@ pub fn try_init(
     }
 
     let adriver = audio::AudioDriver::new(&mut settings, &mut syn);
+
+    // Use FluidR3_GM.sf2 with multiple instruments for midi file
+    let startup_sf2_filename = "/usr/share/sounds/sf2/FluidR3_GM.sf2";
+    let sf2startup = syn.sfload(startup_sf2_filename, 1);
+
+    if sf2startup == None {
+        warn!("Failed to load sound font file {}", startup_sf2_filename);
+    }
+
+    // Enable polyphony for midi file
+    if !syn.set_polyphony(16) {
+        warn!("Failed to set polyphony to 16");
+    }
+    
+    // Select bank 0
+    syn.program_change(0, 0);
+
+	// Play the midi file
+    let player = midi::Player::new(&mut syn);
+    player.add("/usr/share/haxo/Startup_Haxophone.mid");
+    player.play();
+
+    // Wait until midi file is finished
+    while player.get_status() ==  midi::PlayerStatus::Playing {
+        // wait ..
+    }
+    
+    // Switch off polyphony for sax
+    if !syn.set_polyphony(1) {
+        warn!("Failed to set polyphony to 1");
+    }
+
     let sf2 = syn.sfload(sf2file, 1);
 
     if sf2 == None {
