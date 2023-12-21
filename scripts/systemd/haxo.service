@@ -11,6 +11,7 @@ User=root
 Group=audio
 WorkingDir=/usr/share/haxo
 Environment=RUST_LOG=info
+ExecStartPre=/usr/local/bin/create_midi_gadget.sh
 ExecStart=/usr/local/bin/haxo001 \
           --notemap-file /usr/share/haxo/notemap.json \
           --prog-number 66 \
