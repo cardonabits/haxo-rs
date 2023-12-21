@@ -1,6 +1,6 @@
 extern crate fluidsynth;
 
-use fluidsynth::{audio, settings, synth};
+use fluidsynth::{audio, midi, settings, synth};
 use log::{info, warn};
 
 use crate::alsa;
