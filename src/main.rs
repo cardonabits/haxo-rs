@@ -26,7 +26,7 @@ mod pressure;
 mod synth;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "haxo", about = "Make music on a haxophone")]
+#[structopt(name = "haxo", about = "Make music on a haxophone", version = env!("VERGEN_GIT_DESCRIBE"))]
 struct Opt {
     #[structopt(short, long)]
     record: bool,
