@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "instrumentation")]
     let mut noteon_pin = Gpio::new()?.get(GPIO_UART_TXD)?.into_output();
 
-    println!("Starting haxophone...");
+    println!("Starting haxophone (version {})...", env!("VERGEN_GIT_DESCRIBE"));
 
     keyscan::init_io().expect("Failed to initialize scan GPIO");
     let mut sensor = pressure::Pressure::init().expect("Failed to initialize pressure sensor");
