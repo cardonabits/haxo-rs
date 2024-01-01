@@ -1,5 +1,10 @@
 #! /bin/sh
 modprobe libcomposite
+if [ -d /sys/kernel/config/usb_gadget/midi ]; then
+  echo "usb midi gadget already exists" >&2
+  exit 0
+fi
+
 mkdir /sys/kernel/config/usb_gadget/midi
 cd /sys/kernel/config/usb_gadget/midi
 mkdir configs/c.1
@@ -15,3 +20,4 @@ echo "Conf 1" > configs/c.1/strings/0x409/configuration
 echo 120 > configs/c.1/MaxPower
 ln -s functions/midi.usb0 configs/c.1
 echo $(ls /sys/class/udc) > UDC
+echo "created usb midi gadget" >&2
