@@ -36,9 +36,9 @@ pub const NOTES: &[(&str, i32)] = &[
     ("High F#", 90),
 ];
 
-pub fn get_name(value: &i32) -> Option<&str> {
+pub fn get_name(value: i32) -> Option<&'static str> {
     for &n in NOTES {
-        if *value == n.1 {
+        if value == n.1 {
             return Some(n.0);
         }
     }

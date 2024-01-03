@@ -17,10 +17,11 @@ pub struct NoteMap {
     record_next: bool,
     filename: String,
     notemap: BTreeMap<u32, i32>,
+    transpose: i32,
 }
 
 impl NoteMap {
-    pub fn generate(notemapfile: &str) -> Self {
+    pub fn generate(notemapfile: &str, transpose: i32) -> Self {
         let mapfile = fs::read_to_string(notemapfile);
         let mapfile = match mapfile {
             Ok(contents) => contents,
@@ -37,7 +38,8 @@ impl NoteMap {
             last_recorded: 0,
             record_next: false,
             filename: String::from(notemapfile),
-            notemap: notemap,
+            notemap,
+            transpose,
         }
     }
 
@@ -46,8 +48,14 @@ impl NoteMap {
         fs::write(&self.filename, notemap_json).expect("Unable to write file");
     }
 
-    pub fn get(&self, key: &u32) -> std::option::Option<&i32> {
-        self.notemap.get(key)
+    pub fn get(&self, key: &u32) -> std::option::Option<i32> {
+	// Notemap is concert pitch, so add transpose to get midi value.
+        self.notemap.get(key).map(|v| v + self.transpose)
+    }
+
+    pub fn get_name(&self, note: &i32) -> std::option::Option<&'static str> {
+	// Subtract transpose to convert from midi note to concert pitch.
+        midinotes::get_name(note - self.transpose)
     }
 
     pub fn start_recording(&mut self) {

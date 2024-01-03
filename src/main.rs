@@ -26,7 +26,7 @@ mod pressure;
 mod synth;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "haxo", about = "Make music on a haxophone", version = env!("VERGEN_GIT_DESCRIBE"))]
+#[structopt(name = "haxo", about = "Make music on a haxophone", version = env!("VERGEN_GIT_DESCRIBE"), settings = &[structopt::clap::AppSettings::AllowNegativeNumbers])]
 struct Opt {
     #[structopt(short, long)]
     record: bool,
@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     keyscan::init_io().expect("Failed to initialize scan GPIO");
     let mut sensor = pressure::Pressure::init().expect("Failed to initialize pressure sensor");
 
-    let mut notemap = notemap::NoteMap::generate(&opt.notemap_file);
+    let mut notemap = notemap::NoteMap::generate(&opt.notemap_file, opt.transpose);
     if opt.record {
         notemap.start_recording();
     }
@@ -135,11 +135,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if let Some(note) = notemap.get(&keys) {
-            if last_note != *note {
+            if last_note != note {
                 if log_enabled!(Level::Debug) {
                     debug!(
                         "Note: {} Pressure: {} Key {:032b}: {}",
-                        midinotes::get_name(note).unwrap_or("Unknown?"),
+                        notemap.get_name(&note).unwrap_or("Unknown?"),
                         pressure,
                         keys,
                         keys
@@ -159,12 +159,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         #[cfg(feature = "midi")]
                         midi_out.cc(MIDI_CC_VOLUME, vol);
                     }
-                    synth.noteon(0, *note, 127);
+                    synth.noteon(0, note, 127);
                     #[cfg(feature = "midi")]
-                    midi_out.noteon(*note, 127);
+                    midi_out.noteon(note, 127);
                     #[cfg(feature = "instrumentation")]
                     noteon_pin.set_high();
-                    last_note = *note;
+                    last_note = note;
                     debug!("last_note changed to {}", last_note);
                 }
             }
@@ -186,7 +186,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // Enter Control Mode
             if neg_pressure_countdown == 0 {
-                match midinotes::get_name(note) {
+                match notemap.get_name(&note) {
                     Some("Low Bb") => {
                         mode = Mode::Control;
                         beep(&synth, 71, 50);
