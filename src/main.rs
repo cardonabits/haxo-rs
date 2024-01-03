@@ -36,6 +36,8 @@ struct Opt {
     prog_number: i32,
     #[structopt(short, long, default_value = "./notemap.json")]
     notemap_file: String,
+    #[structopt(short, long, default_value = "-14")]
+    transpose: i32,
 }
 
 #[derive(PartialEq)]
@@ -86,7 +88,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "instrumentation")]
     let mut noteon_pin = Gpio::new()?.get(GPIO_UART_TXD)?.into_output();
 
-    println!("Starting haxophone (version {})...", env!("VERGEN_GIT_DESCRIBE"));
+    println!(
+        "Starting haxophone (version {})...",
+        env!("VERGEN_GIT_DESCRIBE")
+    );
 
     keyscan::init_io().expect("Failed to initialize scan GPIO");
     let mut sensor = pressure::Pressure::init().expect("Failed to initialize pressure sensor");
