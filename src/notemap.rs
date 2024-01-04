@@ -17,7 +17,7 @@ pub struct NoteMap {
     record_next: bool,
     filename: String,
     notemap: BTreeMap<u32, i32>,
-    transpose: i32,
+    pub transpose: i32,
 }
 
 impl NoteMap {
