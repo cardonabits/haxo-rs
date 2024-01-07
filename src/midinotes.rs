@@ -1,45 +1,44 @@
 // Map notes in the instrument to midi notes.  The note names are used for debug
-// messages and when recording notemaps.  This assumes a Bb instrument
-// TODO: Make this a command line flag, e.g. --instrument-key=Bb
+// messages and when recording notemaps.  Notes are in concert pitch.
 pub const NOTES: &[(&str, i32)] = &[
-    ("Low Bb", 44),
-    ("Low B", 45),
-    ("Low C", 46),
-    ("Low C#", 47),
-    ("Low D", 48),
-    ("Low D#", 49),
-    ("Low E", 50),
-    ("Low F", 51),
-    ("Low F#", 52),
-    ("Low G", 53),
-    ("Low Ab", 54),
-    ("Low A", 55),
-    ("Mid Bb", 56),
-    ("Mid B", 57),
-    ("Mid C", 58),
-    ("Mid C#", 59),
-    ("Mid D", 60),
-    ("Mid D#", 61),
-    ("Mid E", 62),
-    ("Mid F", 63),
-    ("Mid F#", 64),
-    ("Mid G", 65),
-    ("Mid Ab", 66),
-    ("Mid A", 67),
-    ("High Bb", 68),
-    ("High B", 69),
-    ("High C", 70),
-    ("High C#", 71),
-    ("High D", 72),
-    ("High D#", 73),
-    ("High E", 74),
-    ("High F", 75),
-    ("High F#", 76),
+    ("Low Bb", 58),
+    ("Low B", 59),
+    ("Low C", 60),
+    ("Low C#", 61),
+    ("Low D", 62),
+    ("Low D#", 63),
+    ("Low E", 64),
+    ("Low F", 65),
+    ("Low F#", 66),
+    ("Low G", 67),
+    ("Low Ab", 68),
+    ("Low A", 69),
+    ("Mid Bb", 70),
+    ("Mid B", 71),
+    ("Mid C", 72),
+    ("Mid C#", 73),
+    ("Mid D", 74),
+    ("Mid D#", 75),
+    ("Mid E", 76),
+    ("Mid F", 77),
+    ("Mid F#", 78),
+    ("Mid G", 79),
+    ("Mid Ab", 80),
+    ("Mid A", 81),
+    ("High Bb", 82),
+    ("High B", 83),
+    ("High C", 84),
+    ("High C#", 85),
+    ("High D", 86),
+    ("High D#", 87),
+    ("High E", 88),
+    ("High F", 89),
+    ("High F#", 90),
 ];
 
-pub fn get_name(value: &i32) -> Option<&str> {
+pub fn get_name(value: i32) -> Option<&'static str> {
     for &n in NOTES {
-        if *value == n.1 {
+        if value == n.1 {
             return Some(n.0);
         }
     }
