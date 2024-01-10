@@ -13,8 +13,6 @@ use schedule_recv::periodic;
 
 use structopt::StructOpt;
 
-use fluidsynth::synth::Synth;
-
 mod alsa;
 mod commands;
 mod keyscan;
@@ -24,6 +22,9 @@ mod midinotes;
 mod notemap;
 mod pressure;
 mod synth;
+mod transpose;
+
+use crate::synth::beep;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "haxo", about = "Make music on a haxophone", version = env!("VERGEN_GIT_DESCRIBE"), settings = &[structopt::clap::AppSettings::AllowNegativeNumbers])]
@@ -56,25 +57,12 @@ fn shutdown() {
         .expect("failed to halt system");
 }
 
-fn beep(synth: &Synth, note: i32, vol: i32) {
-    const MIDI_CC_VOLUME: i32 = 7;
-    synth.noteon(0, note, vol);
-    synth.cc(0, MIDI_CC_VOLUME, vol);
-    thread::sleep(Duration::from_millis(100));
-    synth.noteoff(0, note);
-}
-
 const TICK_USECS: u32 = 2_000;
 
 #[cfg(feature = "instrumentation")]
 const GPIO_UART_RXD: u8 = 15;
 #[cfg(feature = "instrumentation")]
 const GPIO_UART_TXD: u8 = 14;
-
-// We have to make high C the reference if we want to fit soprano (-2), alto (-9),
-// tenor (-14) and bari (-21) within the reachable range. This then makes it hard
-// to do upward transpositions though :/
-const TRANSPOSE_REFERENCE: i32 = 84;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
@@ -110,6 +98,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_note = 0;
     let mut mode = Mode::Play;
     let mut cmd = commands::Command::new(&synth, opt.prog_number);
+
+    const TRANSPOSE_COUNTDOWN_MS: u32 = 200u32;
+    const TRANSPOSE_COUNTDOWN_TICKS: u32 = TRANSPOSE_COUNTDOWN_MS * 1000 / TICK_USECS;
+    let mut transpose = transpose::Transpose::new(&synth, TRANSPOSE_COUNTDOWN_TICKS);
+
     const NEG_PRESS_COUNTDOWN_MS: u32 = 500u32;
     const NEG_PRESS_INIT_VAL: u32 = NEG_PRESS_COUNTDOWN_MS * 1000 / TICK_USECS;
     let mut neg_pressure_countdown: u32 = NEG_PRESS_INIT_VAL;
@@ -132,29 +125,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if mode == Mode::Control {
             cmd.process(keys);
-        }
-
-        if mode == Mode::Transpose {
-            // In transpose mode, we wait until a note is played, and measure
-            // how far away from the reference that note is. We use this as the
-            // offset. e.g. to get an tenor (which plays 14 half steps below 
-            // concert), you need to play a "Mid Bb". To get a alto, play "Mid Eb",
-            // and for bari, play "Low Eb".
-            // TODO: Refactor this. 
-            if let Some(note) = notemap.get(&keys) {
-                if vol > 10 {
-                    // Undo any existing transposition, then compare to reference.
-                    let offset = note - notemap.transpose - TRANSPOSE_REFERENCE;
-                    if offset != notemap.transpose {
-                        notemap.transpose = offset;
-                        info!("Set tranpose to {offset}");
-                        // Beep the concert and transposed 'C'.
-                        beep(&synth, TRANSPOSE_REFERENCE, 50);
-                        thread::sleep(Duration::from_millis(100));
-                        beep(&synth, note, 50);
-                    }
-                }
-            }
+        } else if mode == Mode::Transpose {
+            transpose.process(keys, vol, &mut notemap);
         }
 
         if mode != Mode::Play {
@@ -227,7 +199,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                     Some("Low B") => {
                         mode = Mode::Transpose;
-                        // TODO: This was arbitrary.
                         beep(&synth, 71, 50);
                         thread::sleep(Duration::from_millis(20));
                         beep(&synth, 75, 50);
