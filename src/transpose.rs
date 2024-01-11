@@ -21,13 +21,20 @@ enum TransposeCmd {
 // tenor (Mid Bb, -> -14) and bari (Low Eb -> -21) within the reachable range.
 const TRANSPOSE_REFERENCE: i32 = 84;
 
+// Keys used to change transpose by +/- a half step.
+const KEY_R1: u32 = 0x10000;
+const KEY_R3: u32 = 0x400000;
+
 // Get the command associated with the given key state and volume.
 // For 'direct' transposition, the note must be played.
 fn get_cmd(key: u32, vol: i32, notemap: &NoteMap) -> TransposeCmd {
-    match (key, notemap.get_untransposed(&key), vol) {
-        (_, Some(note), v) if v > 10 => TransposeCmd::Direct(note),
-        (0x10000, None, _) => TransposeCmd::HalfStepUp,
-        (0x400000, None, _) => TransposeCmd::HalfStepDown,
+    // Only enable +/- half stepping if neither key is in the notemap.
+    let step_ok = notemap.get(&KEY_R1).is_none() && notemap.get(&KEY_R3).is_none();
+
+    match (key, notemap.get_untransposed(&key)) {
+        (_, Some(note)) if vol > 10 => TransposeCmd::Direct(note),
+        (KEY_R1, None) if step_ok => TransposeCmd::HalfStepUp,
+        (KEY_R3, None) if step_ok => TransposeCmd::HalfStepDown,
         _ => TransposeCmd::None,
     }
 }
