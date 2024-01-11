@@ -13,8 +13,6 @@ use schedule_recv::periodic;
 
 use structopt::StructOpt;
 
-use fluidsynth::synth::Synth;
-
 mod alsa;
 mod commands;
 mod keyscan;
@@ -24,6 +22,9 @@ mod midinotes;
 mod notemap;
 mod pressure;
 mod synth;
+mod transpose;
+
+use crate::synth::beep;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "haxo", about = "Make music on a haxophone", version = env!("VERGEN_GIT_DESCRIBE"), settings = &[structopt::clap::AppSettings::AllowNegativeNumbers])]
@@ -44,6 +45,7 @@ struct Opt {
 enum Mode {
     Play,
     Control,
+    Transpose,
 }
 
 #[allow(dead_code)]
@@ -53,14 +55,6 @@ fn shutdown() {
         .arg("/usr/sbin/halt")
         .status()
         .expect("failed to halt system");
-}
-
-fn beep(synth: &Synth, note: i32, vol: i32) {
-    const MIDI_CC_VOLUME: i32 = 7;
-    synth.noteon(0, note, vol);
-    synth.cc(0, MIDI_CC_VOLUME, vol);
-    thread::sleep(Duration::from_millis(100));
-    synth.noteoff(0, note);
 }
 
 const TICK_USECS: u32 = 2_000;
@@ -104,6 +98,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_note = 0;
     let mut mode = Mode::Play;
     let mut cmd = commands::Command::new(&synth, opt.prog_number);
+
+    const TRANSPOSE_COUNTDOWN_MS: u32 = 200u32;
+    const TRANSPOSE_COUNTDOWN_TICKS: u32 = TRANSPOSE_COUNTDOWN_MS * 1000 / TICK_USECS;
+    let mut transpose = transpose::Transpose::new(&synth, TRANSPOSE_COUNTDOWN_TICKS);
+
     const NEG_PRESS_COUNTDOWN_MS: u32 = 500u32;
     const NEG_PRESS_INIT_VAL: u32 = NEG_PRESS_COUNTDOWN_MS * 1000 / TICK_USECS;
     let mut neg_pressure_countdown: u32 = NEG_PRESS_INIT_VAL;
@@ -126,10 +125,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if mode == Mode::Control {
             cmd.process(keys);
+        } else if mode == Mode::Transpose {
+            transpose.process(keys, vol, &mut notemap);
+        }
+
+        if mode != Mode::Play {
             // All three left hand palm keys pressed at once
             if keys == 0x124 {
                 beep(&synth, 70, 50);
                 mode = Mode::Play;
+                info!("Return to Play Mode");
             }
             continue;
         }
@@ -191,6 +196,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         mode = Mode::Control;
                         beep(&synth, 71, 50);
                         info!("Enter Control Mode");
+                    }
+                    Some("Low B") => {
+                        mode = Mode::Transpose;
+                        beep(&synth, 71, 50);
+                        thread::sleep(Duration::from_millis(20));
+                        beep(&synth, 75, 50);
+                        info!("Enter Transpose Mode");
                     }
                     _ => {}
                 }

@@ -2,6 +2,8 @@ extern crate fluidsynth;
 
 use fluidsynth::{audio, midi, settings, synth};
 use log::{info, warn};
+use std::thread;
+use std::time::Duration;
 
 use crate::alsa;
 
@@ -54,20 +56,20 @@ pub fn try_init(
     if !syn.set_polyphony(16) {
         warn!("Failed to set polyphony to 16");
     }
-    
+
     // Select bank 0
     syn.program_change(0, 0);
 
-	// Play the midi file
+    // Play the midi file
     let player = midi::Player::new(&mut syn);
     player.add("/usr/share/haxo/Startup_Haxophone.mid");
     player.play();
 
     // Wait until midi file is finished
-    while player.get_status() ==  midi::PlayerStatus::Playing {
+    while player.get_status() == midi::PlayerStatus::Playing {
         // wait ..
     }
-    
+
     // Switch off polyphony for sax
     if !syn.set_polyphony(1) {
         warn!("Failed to set polyphony to 1");
@@ -82,4 +84,12 @@ pub fn try_init(
     syn.program_change(0, banknum);
     println!("Synth created");
     (syn, settings, adriver)
+}
+
+pub fn beep(synth: &synth::Synth, note: i32, vol: i32) {
+    const MIDI_CC_VOLUME: i32 = 7;
+    synth.noteon(0, note, vol);
+    synth.cc(0, MIDI_CC_VOLUME, vol);
+    thread::sleep(Duration::from_millis(100));
+    synth.noteoff(0, note);
 }
