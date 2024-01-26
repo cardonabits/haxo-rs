@@ -106,6 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     const NEG_PRESS_COUNTDOWN_MS: u32 = 500u32;
     const NEG_PRESS_INIT_VAL: u32 = NEG_PRESS_COUNTDOWN_MS * 1000 / TICK_USECS;
     let mut neg_pressure_countdown: u32 = NEG_PRESS_INIT_VAL;
+    let mut last_vol: i32 = 0;
     loop {
         tick.recv().unwrap();
         #[cfg(feature = "instrumentation")]
@@ -115,9 +116,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         let pressure = sensor.read()?;
         let vol = max(0, pressure);
         const MIDI_CC_VOLUME: i32 = 7;
-        synth.cc(0, MIDI_CC_VOLUME, vol);
-        #[cfg(feature = "midi")]
-        midi_out.cc(MIDI_CC_VOLUME, vol);
+        if last_vol != vol {
+            synth.cc(0, MIDI_CC_VOLUME, vol);
+            #[cfg(feature = "midi")]
+            midi_out.cc(MIDI_CC_VOLUME, vol);
+            last_vol = vol;
+        }
 
         if notemap.is_recording() {
             notemap.record(keys, pressure);
