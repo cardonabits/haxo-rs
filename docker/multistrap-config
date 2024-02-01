@@ -1,0 +1,19 @@
+[General]
+# Target architecture
+arch=armhf
+# Sysroot location
+directory=/sysroot/
+# Unpack the packages
+unpack=true
+# Tidy up afterwards (makes the container smaller)
+cleanup=true
+# Both of these refer to the 'Raspbian' stanza, below
+bootstrap=Raspbian
+aptsources=Raspbian
+
+[Raspbian]
+# Required packages for our build
+packages=libasound2-dev libdbus-1-dev libssl-dev libc6-dev libfluidsynth-dev
+source=http://raspbian.raspberrypi.org/raspbian/
+# Distribution version name
+suite=bullseye
