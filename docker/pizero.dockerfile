@@ -1,4 +1,4 @@
-FROM rust:1.75-bullseye
+FROM --platform=linux/amd64 rust:1.75-bullseye
 
 WORKDIR /setup
 
