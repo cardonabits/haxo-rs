@@ -32,6 +32,7 @@ RUN rustup target add arm-unknown-linux-gnueabihf
 # Setup compilation environment variables.
 ENV PKG_CONFIG_LIBDIR_arm_unknown_linux_gnueabihf=/sysroot/usr/lib/arm-linux-gnueabihf/pkgconfig
 ENV PKG_CONFIG_SYSROOT_DIR_arm_unknown_linux_gnueabihf=/sysroot/
+ENV CARGO_HOME=/cargo
 ENV RUSTFLAGS="-C link-arg=--sysroot=/sysroot/ -C linker=/opt/x-tools/armv6-rpi-linux-gnueabihf/bin/armv6-rpi-linux-gnueabihf-gcc"
 
 # Change workdir (this is where the haxo source should get mounted).
