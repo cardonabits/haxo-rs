@@ -15,12 +15,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build the Docker image
+    - name: Build container for cross-compilation
       run: docker build docker/ -f docker/pizero.dockerfile -t pizero:local
-
-    - uses: actions/checkout@v4
-    - name: Build the haxo001 executable
+    - name: Cross-compile haxo001 for Raspberry Pi Zero
       run: |
         docker run --rm --mount "type=bind,source=$(pwd),target=/haxo" \
           --mount "type=bind,source=$HOME/.cargo,target=/cargo" pizero:local \
           cargo build --target arm-unknown-linux-gnueabihf --release --features midi
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: haxo001-rpiz
+        path: target/arm-unknown-linux-gnueabihf/release/haxo001
