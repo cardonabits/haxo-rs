@@ -1,4 +1,3 @@
-
 # Cross-compiling for RPi Zero in docker
 
 - Note: targets other than RPi Zero aren't (yet) supported

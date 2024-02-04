@@ -1,0 +1,26 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main", "testing-ci" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build docker/ -f docker/pizero.dockerfile -t pizero:local
+
+    - uses: actions/checkout@v4
+    - name: Build the haxo001 executable
+      run: |
+        docker run --rm --mount "type=bind,source=$(pwd),target=/haxo" \
+          --mount "type=bind,source=$HOME/.cargo,target=/cargo" pizero:local \
+          cargo build --target arm-unknown-linux-gnueabihf --release --features midi
