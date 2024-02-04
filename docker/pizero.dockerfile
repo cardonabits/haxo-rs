@@ -37,3 +37,5 @@ ENV RUSTFLAGS="-C link-arg=--sysroot=/sysroot/ -C linker=/opt/x-tools/armv6-rpi-
 
 # Change workdir (this is where the haxo source should get mounted).
 WORKDIR /haxo
+# Prevent git complaining about "detected dubious ownership in repository"
+RUN git config --global --add safe.directory /haxo
