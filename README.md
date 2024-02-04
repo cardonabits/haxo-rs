@@ -1,3 +1,4 @@
+![main workflow](https://github.com/cardonabits/haxo-rs/actions/workflows/haxo-rpiz.yml/badge.svg)
 ## Table of Contents
 
 <!-- toc -->
