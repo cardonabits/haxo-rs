@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: Raspberry Pi Zero Compilation
 
 on:
   push:
