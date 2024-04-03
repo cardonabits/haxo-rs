@@ -49,7 +49,7 @@ to do that with with `raspi-config`.
 ### Sound Card
 
 To use the audio codec on the Haxo HAT, you need to load the `max98357a` driver.
-You can do that by editing `/boot/config.txt` as shown below
+You can do that by editing `/boot/firmware/config.txt` as shown below
 
 ```
 # Enable audio (loads snd_bcm2835)
