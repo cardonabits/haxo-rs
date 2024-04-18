@@ -52,22 +52,20 @@ impl Pressure {
 
     pub fn read(&mut self) -> Result<i32, Box<dyn Error>> {
         let pressure = Pressure::read_io(&mut self.i2c)?;
-        /* TODO: implement calibration based on actually measured baseline and MAX */
-        Ok(min((pressure - self.baseline) / 1500, 127))
+        // Compress the the range returned by the sensor to 0-127 required
+        // for MIDI.  TODO:  Make this configurable
+        const PRESSURE_SCALING_FACTOR: i32 = 6;
+        Ok(min((pressure - self.baseline) / PRESSURE_SCALING_FACTOR, 127))
     }
 
     fn read_io(i2c: &mut rppal::i2c::I2c) -> Result<i32, Box<dyn Error>> {
-        let mut reg = [0u8; 3];
+        let mut reg = [0u8; 2];
         let mut result;
         i2c.read(&mut reg)?;
         result = reg[0] as i32;
         result <<= 8;
         result |= reg[1] as i32;
-        result <<= 8;
-        result |= reg[2] as i32;
-        if (reg[0] & 0x20) >> 5 == 0x1 {
-            result = result - 4194304;
-        }
+        result = result - 2048;
         Ok(result)
     }
 }
@@ -144,7 +142,8 @@ mod tests {
         let mut max_val: i32 = 0;
         let mut min_val: i32 = i32::MAX;
         let mut pressure_range_detected = false;
-        const EXPECTED_PRESSURE_RANGE: i32 = 700000;
+        // Test that we can cover at least 1/4 of the full 12-bit output range of the sensor
+        const EXPECTED_PRESSURE_RANGE: i32 = 4096 / 4;
         for _ in 0..100 {
             thread::sleep(Duration::from_millis(50));
             let pressure = Pressure::read_io(&mut sensor.i2c)?;
