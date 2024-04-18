@@ -140,14 +140,14 @@ mod tests {
     #[test]
     fn update() {
         const TMP_NOTEMAP: &str = "/tmp/notemap.json";
-        let mut notemap = NoteMap::generate(TMP_NOTEMAP);
+        let mut notemap = NoteMap::generate(TMP_NOTEMAP, -2);
         notemap.insert(1234567, 66);
         notemap.save();
-        let notemap2 = NoteMap::generate(TMP_NOTEMAP);
-        assert_eq!(notemap2.get(&1234567), Some(&66));
+        let notemap2 = NoteMap::generate(TMP_NOTEMAP, -2);
+        assert_eq!(notemap2.get(&1234567), Some(66i32));
         notemap.remove(&1234567);
         notemap.save();
-        let notemap2 = NoteMap::generate(TMP_NOTEMAP);
+        let notemap2 = NoteMap::generate(TMP_NOTEMAP, -2);
         assert_eq!(notemap2.get(&1234567), None);
     }
 }
