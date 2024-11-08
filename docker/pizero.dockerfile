@@ -23,7 +23,7 @@ RUN ./fix-sysroot.sh
 
 # Download the cross compiler.
 RUN mkdir -p /opt/
-RUN wget -q -O- https://github.com/tttapa/docker-arm-cross-toolchain/releases/latest/download/x-tools-armv6-rpi-linux-gnueabihf.tar.xz \
+RUN wget -q -O- https://github.com/tttapa/docker-arm-cross-toolchain/releases/download/1.0.0/x-tools-armv6-rpi-linux-gnueabihf-gcc14.tar.xz \
   | tar xJ -C /opt
 
 # Add the rust target.
